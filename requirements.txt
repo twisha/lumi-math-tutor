@@ -6,3 +6,4 @@ sounddevice
 scipy
 numpy
 mcp
+anthropic

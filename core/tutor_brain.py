@@ -1,15 +1,16 @@
 import json
 import os
 import re
-from openai import OpenAI
+
+import anthropic
+
 from core.prompts import SYSTEM_PROMPT
-from core.mcp_bridge import TOOLS, execute_tool
+from core.mcp_bridge import TOOLS_ANTHROPIC, execute_tool
 
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-MODEL = os.getenv("LUMI_MODEL", "mistral")
+MODEL = os.getenv("LUMI_MODEL", "claude-haiku-4-5-20251001")
+client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
 
-client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
-conversation_history = []
+conversation_history: list[dict] = []
 
 
 def _clean(text: str) -> str:
@@ -23,56 +24,54 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
     tool_calls_log = []
 
     while True:
-        response = client.chat.completions.create(
+        response = client.messages.create(
             model=MODEL,
-            max_tokens=200,
-            tools=TOOLS,
-            tool_choice="auto",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                *conversation_history
-            ]
+            max_tokens=300,
+            system=[{
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"}  # cache the large system prompt
+            }],
+            tools=TOOLS_ANTHROPIC,
+            messages=conversation_history
         )
 
-        message = response.choices[0].message
-        finish_reason = response.choices[0].finish_reason
+        if response.stop_reason == "tool_use":
+            assistant_content = []
+            tool_results = []
 
-        if message.tool_calls:
-            conversation_history.append({
-                "role": "assistant",
-                "content": message.content,
-                "tool_calls": [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments
-                        }
-                    }
-                    for tc in message.tool_calls
-                ]
-            })
+            for block in response.content:
+                if block.type == "text":
+                    assistant_content.append({"type": "text", "text": block.text})
+                elif block.type == "tool_use":
+                    assistant_content.append({
+                        "type": "tool_use",
+                        "id": block.id,
+                        "name": block.name,
+                        "input": block.input
+                    })
 
-            for tool_call in message.tool_calls:
-                tool_name = tool_call.function.name
-                tool_args = json.loads(tool_call.function.arguments)
-                result = execute_tool(tool_name, tool_args)
+                    result = execute_tool(block.name, dict(block.input))
+                    tool_calls_log.append({
+                        "tool": block.name,
+                        "args": dict(block.input),
+                        "result": json.loads(result)
+                    })
 
-                tool_calls_log.append({
-                    "tool": tool_name,
-                    "args": tool_args,
-                    "result": json.loads(result)
-                })
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": result
+                    })
 
-                conversation_history.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": result
-                })
+            conversation_history.append({"role": "assistant", "content": assistant_content})
+            conversation_history.append({"role": "user", "content": tool_results})
 
         else:
-            reply = _clean(message.content or "")
+            reply = _clean("".join(
+                block.text for block in response.content
+                if hasattr(block, "text")
+            ))
             conversation_history.append({"role": "assistant", "content": reply})
             return reply, tool_calls_log
 
