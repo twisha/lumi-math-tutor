@@ -21,7 +21,7 @@ A locally-run, voice-enabled AI math tutor for Kindergarten through 2nd grade (a
 ## Tech Stack
 
 | Component | Technology |
-|---|---|
+| --- | --- |
 | UI | Streamlit |
 | LLM | llama3.2 via Ollama |
 | LLM API | OpenAI-compatible client → `localhost:11434` |
@@ -37,17 +37,20 @@ A locally-run, voice-enabled AI math tutor for Kindergarten through 2nd grade (a
 ## Setup
 
 1. **Clone the repo**
+
    ```bash
-   git clone <repo-url>
-   cd CapstoneProject
+   git clone https://github.com/twisha/lumi-math-tutor.git
+   cd lumi-math-tutor
    ```
 
 2. **Install Python dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Pull the model**
+
    ```bash
    ollama pull llama3.2
    ```
@@ -55,11 +58,13 @@ A locally-run, voice-enabled AI math tutor for Kindergarten through 2nd grade (a
 ## Running the App
 
 In one terminal, start Ollama:
+
 ```bash
 ollama serve
 ```
 
 In another terminal, start the app:
+
 ```bash
 streamlit run app.py
 ```
@@ -68,8 +73,8 @@ Then open [http://localhost:8501](http://localhost:8501) in your browser and cli
 
 ## Project Structure
 
-```
-CapstoneProject/
+```text
+lumi-math-tutor/
 ├── app.py              # Streamlit UI
 ├── requirements.txt    # Python dependencies
 ├── core/
@@ -83,7 +88,7 @@ CapstoneProject/
 ## Usage
 
 | Input method | How |
-|---|---|
+| --- | --- |
 | Voice | Click **Tap to Talk!**, speak for up to 5 seconds |
 | Text | Type in the text box and click **Send** |
 | New session | Click **New Session** in the sidebar |
