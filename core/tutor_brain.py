@@ -8,7 +8,14 @@ from core.prompts import SYSTEM_PROMPT
 from core.mcp_bridge import TOOLS_ANTHROPIC, execute_tool
 
 MODEL = os.getenv("LUMI_MODEL", "claude-haiku-4-5-20251001")
-client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
+
+if not os.getenv("ANTHROPIC_API_KEY"):
+    raise EnvironmentError(
+        "ANTHROPIC_API_KEY is not set. "
+        "Copy .env.example to .env and add your key, then run: export $(cat .env | xargs)"
+    )
+
+client = anthropic.Anthropic()
 
 conversation_history: list[dict] = []
 
@@ -24,17 +31,27 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
     tool_calls_log = []
 
     while True:
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=300,
-            system=[{
-                "type": "text",
-                "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"}  # cache the large system prompt
-            }],
-            tools=TOOLS_ANTHROPIC,
-            messages=conversation_history
-        )
+        try:
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=300,
+                system=[{
+                    "type": "text",
+                    "text": SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral"}
+                }],
+                tools=TOOLS_ANTHROPIC,
+                messages=conversation_history
+            )
+        except anthropic.AuthenticationError:
+            conversation_history.pop()
+            return "Oops! There is a problem with my connection. Please check the API key.", []
+        except anthropic.RateLimitError:
+            conversation_history.pop()
+            return "I am a little tired right now! Please try again in a moment. 😊", []
+        except anthropic.APIError as e:
+            conversation_history.pop()
+            return f"Something went wrong — please try again! ({type(e).__name__})", []
 
         if response.stop_reason == "tool_use":
             assistant_content = []
@@ -51,7 +68,11 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
                         "input": block.input
                     })
 
-                    result = execute_tool(block.name, dict(block.input))
+                    try:
+                        result = execute_tool(block.name, dict(block.input))
+                    except Exception as e:
+                        result = json.dumps({"error": str(e)})
+
                     tool_calls_log.append({
                         "tool": block.name,
                         "args": dict(block.input),
@@ -72,7 +93,11 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
                 block.text for block in response.content
                 if hasattr(block, "text")
             ))
-            conversation_history.append({"role": "assistant", "content": reply})
+            # content must always be a list for Anthropic API consistency
+            conversation_history.append({
+                "role": "assistant",
+                "content": [{"type": "text", "text": reply}]
+            })
             return reply, tool_calls_log
 
 
