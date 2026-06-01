@@ -1,5 +1,5 @@
 """
-MCP ↔ OpenAI / Anthropic tool format bridge.
+MCP ↔ Anthropic tool format bridge.
 
 Spawns the MCP server as a subprocess, keeps a persistent async session in a
 background thread, and exposes a synchronous API that tutor_brain.py can call.
@@ -42,20 +42,15 @@ async def _connect():
     await _session.initialize()
 
 
-_run(_connect())
+try:
+    _run(_connect())
+except Exception as e:
+    raise RuntimeError(
+        f"Failed to start MCP tool server: {e}\n"
+        "Make sure you are running from the project root: streamlit run app.py"
+    ) from e
 
-# ── Convert MCP tool schema → OpenAI function-calling format ─────────────────
-
-def _to_openai(tool) -> dict:
-    return {
-        "type": "function",
-        "function": {
-            "name": tool.name,
-            "description": tool.description,
-            "parameters": tool.inputSchema,
-        }
-    }
-
+# ── Convert MCP tool schema → Anthropic format ────────────────────────────────
 
 def _to_anthropic(tool) -> dict:
     return {
@@ -65,10 +60,8 @@ def _to_anthropic(tool) -> dict:
     }
 
 
-_mcp_tools = _run(_session.list_tools()).tools           # type: ignore[union-attr]
-TOOLS_OPENAI: list[dict] = [_to_openai(t) for t in _mcp_tools]
+_mcp_tools = _run(_session.list_tools()).tools       # type: ignore[union-attr]
 TOOLS_ANTHROPIC: list[dict] = [_to_anthropic(t) for t in _mcp_tools]
-TOOLS = TOOLS_OPENAI                                     # default (backwards compat)
 
 # ── Public API ────────────────────────────────────────────────────────────────
 

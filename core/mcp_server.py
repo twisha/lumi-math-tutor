@@ -98,7 +98,10 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     fn = fn_map.get(name)
     if fn is None:
         return [types.TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
-    return [types.TextContent(type="text", text=json.dumps(fn(**arguments)))]
+    try:
+        return [types.TextContent(type="text", text=json.dumps(fn(**arguments)))]
+    except TypeError as e:
+        return [types.TextContent(type="text", text=json.dumps({"error": f"Invalid arguments: {e}"}))]
 
 
 async def main():

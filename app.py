@@ -1,11 +1,9 @@
 """
 Lumi Math Tutor — app.py
-Streamlit UI for a K-2 voice math tutor powered by Ollama + local Whisper + pyttsx3.
+Streamlit UI for a K-2 voice math tutor powered by Claude API + MCP tools + local Whisper + pyttsx3.
 
 Run with:
-    streamlit run app.py
-Make sure Ollama is running in another terminal:
-    ollama serve
+    export $(cat .env | xargs) && streamlit run app.py
 """
 
 import threading
@@ -334,6 +332,6 @@ with col2:
 
 st.markdown("""
 <div style='text-align:center; color:#ccc; font-size:0.75rem; padding-top:1rem'>
-    Powered by Ollama + Whisper + pyttsx3 · Runs 100% locally · No data sent to the cloud
+    Powered by Claude API + Whisper + pyttsx3 · Tools via MCP · Speech runs locally
 </div>
 """, unsafe_allow_html=True)

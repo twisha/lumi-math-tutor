@@ -1,5 +1,4 @@
 streamlit
-openai
 openai-whisper
 pyttsx3
 sounddevice
