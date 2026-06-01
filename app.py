@@ -165,11 +165,11 @@ def handle_voice_input():
 
     try:
         # Record
-        audio_file = record_audio(duration=5)
+        audio = record_audio(duration=5)
         st.session_state.status = "Thinking..."
 
         # Transcribe
-        child_text = transcribe(audio_file)
+        child_text = transcribe(audio)
         if not child_text:
             st.session_state.status = "I didn't hear anything — try again!"
             st.session_state.recording = False

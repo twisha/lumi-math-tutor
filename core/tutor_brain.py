@@ -13,15 +13,7 @@ conversation_history = []
 
 
 def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
-    """
-    Send child's message to Ollama with tools.
-    Returns (reply, tool_calls_log) so the UI can show what happened.
-    """
-    conversation_history.append({
-        "role": "user",
-        "content": user_text
-    })
-
+    conversation_history.append({"role": "user", "content": user_text})
     tool_calls_log = []
 
     while True:
@@ -39,7 +31,6 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
         message = response.choices[0].message
         finish_reason = response.choices[0].finish_reason
 
-        # ── Model wants to call a tool ──
         if finish_reason == "tool_calls" and message.tool_calls:
             conversation_history.append({
                 "role": "assistant",
@@ -62,7 +53,6 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
                 tool_args = json.loads(tool_call.function.arguments)
                 result = execute_tool(tool_name, tool_args)
 
-                # Log for UI display
                 tool_calls_log.append({
                     "tool": tool_name,
                     "args": tool_args,
@@ -75,21 +65,15 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
                     "content": result
                 })
 
-        # ── Model has final response ──
         else:
             reply = (message.content or "").strip()
-            conversation_history.append({
-                "role": "assistant",
-                "content": reply
-            })
+            conversation_history.append({"role": "assistant", "content": reply})
             return reply, tool_calls_log
 
 
 def reset_conversation():
-    """Clear history for a fresh session."""
     conversation_history.clear()
 
 
 def get_history():
-    """Return conversation history for display."""
     return conversation_history.copy()
