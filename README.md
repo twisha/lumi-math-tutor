@@ -23,11 +23,51 @@ A locally-run, voice-enabled AI math tutor for Kindergarten through 2nd grade (a
 | Component | Technology |
 | --- | --- |
 | UI | Streamlit |
-| LLM | llama3.2 via Ollama |
+| LLM | Mistral via Ollama (model-agnostic via `LUMI_MODEL` env var) |
 | LLM API | OpenAI-compatible client → `localhost:11434` |
+| Tool protocol | MCP (Model Context Protocol) |
 | Speech input | OpenAI Whisper (local) |
 | Speech output | pyttsx3 |
-| Audio recording | sounddevice + scipy |
+| Audio recording | sounddevice |
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph IO["I/O Layer"]
+        MIC["🎤 Mic\nsounddevice"] --> WHISPER["Whisper\nspeech_input.py"]
+        TTS["🔊 pyttsx3\nspeech_output.py"]
+    end
+
+    subgraph UI["UI Layer"]
+        APP["Streamlit\napp.py"]
+    end
+
+    subgraph Brain["Brain Layer"]
+        BRAIN["tutor_brain.py\nAgentic Loop"]
+        OLLAMA["Ollama LLM\n(mistral / any model)"]
+    end
+
+    subgraph MCP["MCP Layer"]
+        BRIDGE["mcp_bridge.py\nMCP Client"]
+        SERVER["mcp_server.py\nMCP Server"]
+    end
+
+    subgraph Tools["Tools Layer"]
+        TOOLS["tools.py\ncalculate · check_answer\ngenerate_problem · check_topic\ncheck_grade_level"]
+    end
+
+    CHILD["👦 Child"] -->|voice| MIC
+    CHILD -->|text| APP
+    WHISPER -->|transcript| APP
+    APP -->|message| BRAIN
+    BRAIN <-->|chat + tool calls| OLLAMA
+    BRAIN -->|execute_tool| BRIDGE
+    BRIDGE <-->|"stdio (MCP protocol)"| SERVER
+    SERVER --> TOOLS
+    BRAIN -->|reply| APP
+    APP -->|speak| TTS
+```
 
 ## Prerequisites
 
@@ -52,8 +92,10 @@ A locally-run, voice-enabled AI math tutor for Kindergarten through 2nd grade (a
 3. **Pull the model**
 
    ```bash
-   ollama pull llama3.2
+   ollama pull mistral
    ```
+
+   To use a different model, set the `LUMI_MODEL` env var (e.g. `LUMI_MODEL=llama3.1`).
 
 ## Running the App
 
@@ -75,14 +117,16 @@ Then open [http://localhost:8501](http://localhost:8501) in your browser and cli
 
 ```text
 lumi-math-tutor/
-├── app.py              # Streamlit UI
-├── requirements.txt    # Python dependencies
+├── app.py                # Streamlit UI
+├── requirements.txt      # Python dependencies
 ├── core/
-│   ├── prompts.py      # Lumi's system prompt and persona
-│   ├── tutor_brain.py  # Agentic loop (tool calls + conversation history)
-│   ├── tools.py        # Tool definitions and execute_tool()
-│   ├── speech_input.py # Mic recording + Whisper transcription
-│   └── speech_output.py# pyttsx3 text-to-speech
+│   ├── prompts.py        # Lumi's system prompt and persona
+│   ├── tutor_brain.py    # Agentic loop (LLM + tool calls)
+│   ├── tools.py          # Pure Python tool implementations
+│   ├── mcp_server.py     # MCP server exposing tools over stdio
+│   ├── mcp_bridge.py     # MCP client → OpenAI tool format bridge
+│   ├── speech_input.py   # Mic recording + Whisper transcription
+│   └── speech_output.py  # pyttsx3 text-to-speech
 ```
 
 ## Usage
