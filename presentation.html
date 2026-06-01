@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumi Math Tutor — Capstone</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f0f1a;
+    color: #f0f0f0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .deck {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem 6rem;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+    text-align: center;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+
+  /* ── Nav ── */
+  .nav {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    z-index: 100;
+  }
+
+  .nav button {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 0.5rem 1.4rem;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+
+  .nav button:hover { background: rgba(255,255,255,0.2); }
+
+  .nav .counter {
+    color: rgba(255,255,255,0.4);
+    font-size: 0.85rem;
+    min-width: 60px;
+    text-align: center;
+  }
+
+  /* ── Typography ── */
+  .eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #FF8C00;
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #FF8C00, #FFD966);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #FF8C00;
+    margin-bottom: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.5);
+    margin-top: 0.8rem;
+  }
+
+  p {
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.7;
+    max-width: 720px;
+  }
+
+  /* ── Cards grid ── */
+  .cards {
+    display: grid;
+    gap: 1.2rem;
+    width: 100%;
+    max-width: 900px;
+    margin-top: 1rem;
+  }
+
+  .cards.two   { grid-template-columns: 1fr 1fr; }
+  .cards.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  .card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 1.4rem 1.6rem;
+    text-align: left;
+  }
+
+  .card .icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+  .card h3 { font-size: 1rem; font-weight: 700; color: #FFD966; margin-bottom: 0.4rem; }
+  .card p  { font-size: 0.88rem; color: rgba(255,255,255,0.6); }
+
+  /* ── Architecture flow ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .flow-box {
+    background: rgba(255,140,0,0.12);
+    border: 1px solid rgba(255,140,0,0.3);
+    border-radius: 12px;
+    padding: 0.7rem 1.1rem;
+    font-size: 0.85rem;
+    text-align: center;
+    min-width: 110px;
+  }
+
+  .flow-box .label { color: rgba(255,255,255,0.4); font-size: 0.7rem; }
+  .flow-box .name  { color: #FFD966; font-weight: 600; font-size: 0.9rem; }
+
+  .arrow { color: rgba(255,255,255,0.25); font-size: 1.2rem; }
+
+  /* ── Tag chips ── */
+  .tags {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.2rem;
+  }
+
+  .tag {
+    background: rgba(255,140,0,0.15);
+    border: 1px solid rgba(255,140,0,0.3);
+    color: #FFD966;
+    padding: 0.35rem 0.9rem;
+    border-radius: 50px;
+    font-size: 0.82rem;
+  }
+
+  /* ── Chat demo ── */
+  .chat {
+    width: 100%;
+    max-width: 620px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .bubble {
+    padding: 0.8rem 1.2rem;
+    border-radius: 16px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    max-width: 85%;
+  }
+
+  .bubble.lumi {
+    background: rgba(255,217,102,0.12);
+    border: 1px solid rgba(255,217,102,0.25);
+    color: #f0e6c0;
+    align-self: flex-start;
+    border-radius: 16px 16px 16px 4px;
+  }
+
+  .bubble.child {
+    background: rgba(100,180,255,0.12);
+    border: 1px solid rgba(100,180,255,0.25);
+    color: #c8e4ff;
+    align-self: flex-end;
+    text-align: right;
+    border-radius: 16px 16px 4px 16px;
+  }
+
+  .tool-trace {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.3);
+    font-family: monospace;
+    align-self: flex-start;
+    padding-left: 0.5rem;
+  }
+
+  /* ── Slide-specific ── */
+  #s1 { background: radial-gradient(ellipse at 60% 40%, #1a1130 0%, #0f0f1a 70%); }
+  #s6 { background: radial-gradient(ellipse at 50% 50%, #1a1008 0%, #0f0f1a 70%); }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ── Slide 1: Title ── -->
+  <div class="slide active" id="s1">
+    <div class="eyebrow">AI Engineering Capstone</div>
+    <h1>✨ Lumi</h1>
+    <p style="font-size:1.4rem; color:#FFD966; margin-top:0.4rem;">K-2 Voice Math Tutor</p>
+    <p style="margin-top:1rem;">A fully-working AI tutoring app built with Claude API, MCP tools,<br>local speech I/O, and agentic tool use — from scratch.</p>
+    <div class="tags" style="margin-top:2rem;">
+      <span class="tag">Claude API</span>
+      <span class="tag">MCP</span>
+      <span class="tag">Whisper</span>
+      <span class="tag">Streamlit</span>
+      <span class="tag">pyttsx3</span>
+      <span class="tag">Agentic AI</span>
+    </div>
+  </div>
+
+  <!-- ── Slide 2: What We Built ── -->
+  <div class="slide" id="s2">
+    <div class="eyebrow">What We Built</div>
+    <h2>Problem → Solution</h2>
+    <div class="cards two">
+      <div class="card">
+        <div class="icon">⚠️</div>
+        <h3>The Problem</h3>
+        <p>K-2 children can't type. Traditional chat tutors are inaccessible to 5–7 year olds who need voice, encouragement, and verified answers — not hallucinated math.</p>
+      </div>
+      <div class="card">
+        <div class="icon">✨</div>
+        <h3>The Solution</h3>
+        <p>Lumi listens via Whisper, thinks with Claude, verifies answers through MCP tools, and talks back with pyttsx3. A real agentic AI loop — end to end.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎓</div>
+        <h3>Teaches</h3>
+        <p>Counting, addition, subtraction within 20. Guides with hints, never reveals the answer immediately. Redirects off-topic questions warmly.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛡️</div>
+        <h3>Guardrails</h3>
+        <p>Classifies every input for topic and grade level before responding. Out-of-scope requests get a warm redirect, never an attempt to answer.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slide 3: Architecture ── -->
+  <div class="slide" id="s3">
+    <div class="eyebrow">System Architecture</div>
+    <h2>How It Works</h2>
+    <div class="flow">
+      <div class="flow-box"><div class="label">Child</div><div class="name">👦 Voice / Text</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><div class="label">Speech Input</div><div class="name">Whisper STT</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><div class="label">Brain</div><div class="name">tutor_brain.py</div></div>
+      <div class="arrow">⇄</div>
+      <div class="flow-box"><div class="label">LLM</div><div class="name">Claude API</div></div>
+    </div>
+    <div class="flow" style="margin-top:0.8rem;">
+      <div class="flow-box"><div class="label">MCP Client</div><div class="name">mcp_bridge.py</div></div>
+      <div class="arrow">⇄ stdio ⇄</div>
+      <div class="flow-box"><div class="label">MCP Server</div><div class="name">mcp_server.py</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><div class="label">Tools</div><div class="name">tools.py</div></div>
+    </div>
+    <div class="flow" style="margin-top:0.8rem;">
+      <div class="flow-box"><div class="label">Reply</div><div class="name">tutor_brain.py</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><div class="label">Speech Output</div><div class="name">pyttsx3 TTS</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><div class="label">Child</div><div class="name">🔊 Hears Lumi</div></div>
+    </div>
+  </div>
+
+  <!-- ── Slide 4: AI Concepts ── -->
+  <div class="slide" id="s4">
+    <div class="eyebrow">AI Engineering Fundamentals</div>
+    <h2>Concepts Applied</h2>
+    <div class="cards three">
+      <div class="card">
+        <div class="icon">✏️</div>
+        <h3>Prompt Engineering</h3>
+        <p>System prompt encodes Lumi's persona, teaching sequence, hint escalation, and guardrails entirely in natural language. No fine-tuning needed.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔧</div>
+        <h3>Agentic Tool Use</h3>
+        <p>Claude autonomously decides when to call <code>calculate()</code>, <code>check_answer()</code>, or <code>generate_problem()</code> — never guessing at math.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔌</div>
+        <h3>MCP Protocol</h3>
+        <p>Tools run as a local MCP server over stdio. The bridge translates MCP schemas to Anthropic format — model-agnostic and swappable.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛡️</div>
+        <h3>Guardrails</h3>
+        <p>Defense-in-depth: input classification tools <em>and</em> system prompt reinforcement catch off-topic and out-of-grade requests at two layers.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚡</div>
+        <h3>Prompt Caching</h3>
+        <p>The system prompt is cached with Anthropic's ephemeral cache, reducing latency and cost on every multi-turn conversation turn.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎙️</div>
+        <h3>Multimodal I/O</h3>
+        <p>Whisper (transformer-based STT) for voice input. pyttsx3 for TTS output. The same transformer architecture powers both the LLM and speech model.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slide 5: Demo ── -->
+  <div class="slide" id="s5">
+    <div class="eyebrow">Live Demo</div>
+    <h2>Lumi in Action</h2>
+    <div class="chat">
+      <div class="bubble child">What is 4 + 9? 👦</div>
+      <div class="tool-trace">→ calculate("4 + 9") = 13</div>
+      <div class="bubble lumi">😊 Lumi: Great question! What do you think the answer might be?</div>
+      <div class="bubble child">15? 👦</div>
+      <div class="tool-trace">→ check_answer(expected=13, given=15) → incorrect</div>
+      <div class="bubble lumi">😊 Lumi: So close! Try starting at 9 and counting up 4 more — 9… 10…</div>
+      <div class="bubble child">13! 👦</div>
+      <div class="tool-trace">→ check_answer(expected=13, given=13) → correct ✓</div>
+      <div class="bubble lumi">⭐ Lumi: Yes! 4 + 9 = 13 — you are a math superstar! Want to try another one?</div>
+    </div>
+  </div>
+
+  <!-- ── Slide 6: Close ── -->
+  <div class="slide" id="s6">
+    <div class="eyebrow">Capstone Project · AI Engineering Course</div>
+    <h1>✨ Lumi</h1>
+    <p style="margin-top:1.2rem; font-size:1.1rem;">A K-2 voice math tutor that applies six AI engineering fundamentals<br>in a single working product — built end to end.</p>
+    <div class="cards two" style="margin-top:2rem; max-width:660px;">
+      <div class="card">
+        <h3>What We Applied</h3>
+        <p style="line-height:2;">Prompt Engineering · Agentic Tool Use<br>MCP Protocol · Guardrails<br>Prompt Caching · Multimodal I/O</p>
+      </div>
+      <div class="card">
+        <h3>Stack</h3>
+        <p style="line-height:2;">Claude Haiku API · MCP (stdio)<br>Whisper STT · pyttsx3 TTS<br>Streamlit · Python</p>
+      </div>
+    </div>
+    <p style="margin-top:2rem; color:rgba(255,255,255,0.3); font-size:0.85rem;">github.com/twisha/lumi-math-tutor</p>
+  </div>
+
+</div>
+
+<!-- ── Navigation ── -->
+<div class="nav">
+  <button onclick="go(-1)">← Prev</button>
+  <span class="counter" id="counter">1 / 6</span>
+  <button onclick="go(1)">Next →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    document.getElementById('counter').textContent = `${cur + 1} / ${slides.length}`;
+  }
+
+  function go(dir) { show(cur + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+  });
+</script>
+</body>
+</html>
