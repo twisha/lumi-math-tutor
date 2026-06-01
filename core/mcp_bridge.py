@@ -1,5 +1,5 @@
 """
-MCP ↔ OpenAI tool format bridge.
+MCP ↔ OpenAI / Anthropic tool format bridge.
 
 Spawns the MCP server as a subprocess, keeps a persistent async session in a
 background thread, and exposes a synchronous API that tutor_brain.py can call.
@@ -57,8 +57,18 @@ def _to_openai(tool) -> dict:
     }
 
 
-_mcp_tools = _run(_session.list_tools()).tools       # type: ignore[union-attr]
-TOOLS: list[dict] = [_to_openai(t) for t in _mcp_tools]
+def _to_anthropic(tool) -> dict:
+    return {
+        "name": tool.name,
+        "description": tool.description,
+        "input_schema": tool.inputSchema,
+    }
+
+
+_mcp_tools = _run(_session.list_tools()).tools           # type: ignore[union-attr]
+TOOLS_OPENAI: list[dict] = [_to_openai(t) for t in _mcp_tools]
+TOOLS_ANTHROPIC: list[dict] = [_to_anthropic(t) for t in _mcp_tools]
+TOOLS = TOOLS_OPENAI                                     # default (backwards compat)
 
 # ── Public API ────────────────────────────────────────────────────────────────
 

@@ -1,15 +1,15 @@
 # ✨ Lumi — Math Buddy
 
-A locally-run, voice-enabled AI math tutor for Kindergarten through 2nd grade (ages 5–7). Lumi guides children through counting, addition, and subtraction using a warm, patient, and playful persona — with no data ever sent to the cloud.
+A voice-enabled AI math tutor for Kindergarten through 2nd grade (ages 5–7). Lumi guides children through counting, addition, and subtraction using a warm, patient, and playful persona — powered by Claude AI with MCP-based tool use.
 
 ## Features
 
 - **Voice input** — child speaks; Whisper transcribes locally
 - **Voice output** — Lumi responds aloud via pyttsx3
-- **Agentic tool use** — Lumi calls tools to verify answers before responding (no hallucinated math)
+- **Agentic tool use** — Lumi calls tools via MCP to verify answers (no hallucinated math)
 - **Guardrails** — redirects off-topic chat and out-of-grade questions warmly
+- **Prompt caching** — system prompt is cached with the Anthropic API to reduce latency and cost
 - **Debug panel** — toggle to inspect tool calls in the sidebar
-- **100% local** — Ollama + Whisper + pyttsx3, no API keys required
 
 ## What Lumi Teaches
 
@@ -23,8 +23,7 @@ A locally-run, voice-enabled AI math tutor for Kindergarten through 2nd grade (a
 | Component | Technology |
 | --- | --- |
 | UI | Streamlit |
-| LLM | Mistral via Ollama (model-agnostic via `LUMI_MODEL` env var) |
-| LLM API | OpenAI-compatible client → `localhost:11434` |
+| LLM | Claude Haiku via Anthropic API (configurable via `LUMI_MODEL`) |
 | Tool protocol | MCP (Model Context Protocol) |
 | Speech input | OpenAI Whisper (local) |
 | Speech output | pyttsx3 |
@@ -45,7 +44,7 @@ flowchart TD
 
     subgraph Brain["Brain Layer"]
         BRAIN["tutor_brain.py\nAgentic Loop"]
-        OLLAMA["Ollama LLM\n(mistral / any model)"]
+        CLAUDE["Claude API\nAnthropic"]
     end
 
     subgraph MCP["MCP Layer"]
@@ -61,7 +60,7 @@ flowchart TD
     CHILD -->|text| APP
     WHISPER -->|transcript| APP
     APP -->|message| BRAIN
-    BRAIN <-->|chat + tool calls| OLLAMA
+    BRAIN <-->|"chat + tools (cached)"| CLAUDE
     BRAIN -->|execute_tool| BRIDGE
     BRIDGE <-->|"stdio (MCP protocol)"| SERVER
     SERVER --> TOOLS
@@ -72,7 +71,7 @@ flowchart TD
 ## Prerequisites
 
 - Python 3.9+
-- [Ollama](https://ollama.com) installed and running
+- [Anthropic API key](https://console.anthropic.com)
 
 ## Setup
 
@@ -89,26 +88,25 @@ flowchart TD
    pip install -r requirements.txt
    ```
 
-3. **Pull the model**
+3. **Configure environment**
 
    ```bash
-   ollama pull mistral
+   cp .env.example .env
    ```
 
-   To use a different model, set the `LUMI_MODEL` env var (e.g. `LUMI_MODEL=llama3.1`).
+   Edit `.env` and add your Anthropic API key:
+
+   ```env
+   ANTHROPIC_API_KEY=your_api_key_here
+   LUMI_MODEL=claude-haiku-4-5-20251001
+   ```
+
+   To use a different Claude model, change `LUMI_MODEL` (e.g. `claude-sonnet-4-6`).
 
 ## Running the App
 
-In one terminal, start Ollama:
-
 ```bash
-ollama serve
-```
-
-In another terminal, start the app:
-
-```bash
-streamlit run app.py
+export $(cat .env | xargs) && streamlit run app.py
 ```
 
 Then open [http://localhost:8501](http://localhost:8501) in your browser and click **Start Session with Lumi!**
@@ -119,12 +117,13 @@ Then open [http://localhost:8501](http://localhost:8501) in your browser and cli
 lumi-math-tutor/
 ├── app.py                # Streamlit UI
 ├── requirements.txt      # Python dependencies
+├── .env.example          # Environment variable template
 ├── core/
 │   ├── prompts.py        # Lumi's system prompt and persona
-│   ├── tutor_brain.py    # Agentic loop (LLM + tool calls)
+│   ├── tutor_brain.py    # Agentic loop (Claude API + tool calls)
 │   ├── tools.py          # Pure Python tool implementations
 │   ├── mcp_server.py     # MCP server exposing tools over stdio
-│   ├── mcp_bridge.py     # MCP client → OpenAI tool format bridge
+│   ├── mcp_bridge.py     # MCP client → Anthropic/OpenAI tool format bridge
 │   ├── speech_input.py   # Mic recording + Whisper transcription
 │   └── speech_output.py  # pyttsx3 text-to-speech
 ```
