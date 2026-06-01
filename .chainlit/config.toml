@@ -1,0 +1,15 @@
+[project]
+name = "Lumi Math Tutor"
+enable_telemetry = false
+
+[features]
+audio.enabled = true
+
+[UI]
+name = "Lumi ✨"
+description = "Your K-2 Math Buddy"
+default_theme = "dark"
+collapsed_content = false
+
+[meta]
+generated_by = "2.11.0"
