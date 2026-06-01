@@ -111,6 +111,8 @@ export $(cat .env | xargs) && streamlit run app.py
 
 Then open [http://localhost:8501](http://localhost:8501) in your browser and click **Start Session with Lumi!**
 
+> **Note:** A Chainlit + LangSmith version (`chainlit_app.py`) is available on the `feature/improvements` branch. It requires Python 3.12 or earlier due to a Chainlit compatibility issue with Python 3.14.
+
 ## Project Structure
 
 ```text

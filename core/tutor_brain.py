@@ -3,6 +3,8 @@ import os
 import re
 
 import anthropic
+from langsmith import traceable
+from langsmith.wrappers import wrap_anthropic
 
 from core.prompts import SYSTEM_PROMPT
 from core.mcp_bridge import TOOLS_ANTHROPIC, execute_tool
@@ -15,7 +17,8 @@ if not os.getenv("ANTHROPIC_API_KEY"):
         "Copy .env.example to .env and add your key, then run: export $(cat .env | xargs)"
     )
 
-client = anthropic.Anthropic()
+# wrap_anthropic traces every client.messages.create() call in LangSmith
+client = wrap_anthropic(anthropic.Anthropic())
 
 conversation_history: list[dict] = []
 
@@ -26,6 +29,7 @@ def _clean(text: str) -> str:
     return text.strip()
 
 
+@traceable(name="ask_lumi", run_type="chain")
 def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
     conversation_history.append({"role": "user", "content": user_text})
     tool_calls_log = []

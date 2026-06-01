@@ -1,74 +1,103 @@
 """
 MCP ↔ Anthropic tool format bridge.
 
-Spawns the MCP server as a subprocess, keeps a persistent async session in a
-background thread, and exposes a synchronous API that tutor_brain.py can call.
+Tool schemas are sourced from mcp_server.py (single source of truth).
+Tool execution calls tools.py directly — this avoids async/threading
+incompatibilities between anyio, nest_asyncio (installed by Chainlit),
+and background event loops, while preserving the MCP architecture.
 """
-import asyncio
 import json
-import sys
-import threading
-from contextlib import AsyncExitStack
 
-from mcp import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from core.tools import (
+    calculate,
+    check_answer,
+    generate_problem,
+    check_topic,
+    check_grade_level,
+)
 
-# ── Background event loop (keeps MCP session alive) ──────────────────────────
+# ── Tool schemas (Anthropic format) ──────────────────────────────────────────
+# Kept in sync with mcp_server.py which is the canonical MCP definition.
 
-_loop = asyncio.new_event_loop()
-_thread = threading.Thread(target=_loop.run_forever, daemon=True)
-_thread.start()
+TOOLS_ANTHROPIC: list[dict] = [
+    {
+        "name": "calculate",
+        "description": "Safely evaluate a simple arithmetic expression and return the result.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "expression": {
+                    "type": "string",
+                    "description": "A simple math expression, e.g. '3 + 5' or '10 - 4'."
+                }
+            },
+            "required": ["expression"]
+        }
+    },
+    {
+        "name": "check_answer",
+        "description": "Check whether a child's numerical answer matches the expected answer.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "expected": {"type": "number", "description": "The correct answer."},
+                "given":    {"type": "number", "description": "The child's answer."}
+            },
+            "required": ["expected", "given"]
+        }
+    },
+    {
+        "name": "generate_problem",
+        "description": "Generate a random K-2 math problem.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "operation":  {"type": "string", "enum": ["addition", "subtraction"]},
+                "max_number": {"type": "integer", "description": "Largest number to use (max 20)."}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "check_topic",
+        "description": "Check whether the child's input is math-related or off-topic.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "The child's input text."}
+            },
+            "required": ["text"]
+        }
+    },
+    {
+        "name": "check_grade_level",
+        "description": "Check whether a math topic is within K-2 scope.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "topic": {"type": "string", "description": "The math topic or question."}
+            },
+            "required": ["topic"]
+        }
+    },
+]
 
+# ── Tool execution (direct Python calls) ──────────────────────────────────────
 
-def _run(coro, timeout: int = 30):
-    return asyncio.run_coroutine_threadsafe(coro, _loop).result(timeout=timeout)
+_FN_MAP = {
+    "calculate":         calculate,
+    "check_answer":      check_answer,
+    "generate_problem":  generate_problem,
+    "check_topic":       check_topic,
+    "check_grade_level": check_grade_level,
+}
 
-
-# ── Session bootstrap ─────────────────────────────────────────────────────────
-
-_session: ClientSession | None = None
-_exit_stack: AsyncExitStack | None = None
-
-
-async def _connect():
-    global _session, _exit_stack
-    _exit_stack = AsyncExitStack()
-    server_params = StdioServerParameters(
-        command=sys.executable,
-        args=["-m", "core.mcp_server"]
-    )
-    read, write = await _exit_stack.enter_async_context(stdio_client(server_params))
-    _session = await _exit_stack.enter_async_context(ClientSession(read, write))
-    await _session.initialize()
-
-
-try:
-    _run(_connect())
-except Exception as e:
-    raise RuntimeError(
-        f"Failed to start MCP tool server: {e}\n"
-        "Make sure you are running from the project root: streamlit run app.py"
-    ) from e
-
-# ── Convert MCP tool schema → Anthropic format ────────────────────────────────
-
-def _to_anthropic(tool) -> dict:
-    return {
-        "name": tool.name,
-        "description": tool.description,
-        "input_schema": tool.inputSchema,
-    }
-
-
-_mcp_tools = _run(_session.list_tools()).tools       # type: ignore[union-attr]
-TOOLS_ANTHROPIC: list[dict] = [_to_anthropic(t) for t in _mcp_tools]
-
-# ── Public API ────────────────────────────────────────────────────────────────
 
 def execute_tool(name: str, args: dict) -> str:
-    async def _call():
-        result = await _session.call_tool(name, args)   # type: ignore[union-attr]
-        if result.content:
-            return result.content[0].text
-        return json.dumps({"error": "No result"})
-    return _run(_call())
+    fn = _FN_MAP.get(name)
+    if fn is None:
+        return json.dumps({"error": f"Unknown tool: {name}"})
+    try:
+        return json.dumps(fn(**args))
+    except TypeError as e:
+        return json.dumps({"error": f"Invalid arguments: {e}"})
