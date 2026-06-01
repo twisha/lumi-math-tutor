@@ -3,7 +3,7 @@ import os
 import re
 from openai import OpenAI
 from core.prompts import SYSTEM_PROMPT
-from core.tools import TOOLS, execute_tool
+from core.mcp_bridge import TOOLS, execute_tool
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 MODEL = os.getenv("LUMI_MODEL", "mistral")

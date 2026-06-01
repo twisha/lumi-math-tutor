@@ -5,3 +5,4 @@ pyttsx3
 sounddevice
 scipy
 numpy
+mcp
