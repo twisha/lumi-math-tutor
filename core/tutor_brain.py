@@ -1,15 +1,21 @@
 import json
+import os
+import re
 from openai import OpenAI
 from core.prompts import SYSTEM_PROMPT
 from core.tools import TOOLS, execute_tool
 
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama"
-)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+MODEL = os.getenv("LUMI_MODEL", "mistral")
 
-MODEL = "llama3.2"
+client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
 conversation_history = []
+
+
+def _clean(text: str) -> str:
+    text = re.sub(r'\\\((.+?)\\\)', r'\1', text)
+    text = re.sub(r'\\\[(.+?)\\\]', r'\1', text)
+    return text.strip()
 
 
 def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
@@ -31,7 +37,7 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
         message = response.choices[0].message
         finish_reason = response.choices[0].finish_reason
 
-        if finish_reason == "tool_calls" and message.tool_calls:
+        if message.tool_calls:
             conversation_history.append({
                 "role": "assistant",
                 "content": message.content,
@@ -66,7 +72,7 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
                 })
 
         else:
-            reply = (message.content or "").strip()
+            reply = _clean(message.content or "")
             conversation_history.append({"role": "assistant", "content": reply})
             return reply, tool_calls_log
 
