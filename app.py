@@ -134,6 +134,8 @@ if "session_started" not in st.session_state:
     st.session_state.session_started = False
 if "grade_group" not in st.session_state:
     st.session_state.grade_group = None     # "K2" or "35"
+if "voice_enabled" not in st.session_state:
+    st.session_state.voice_enabled = True   # always on for K-2; optional for 3-5
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 
@@ -155,46 +157,49 @@ def start_session(grade_group: str):
     st.session_state.messages = []
     st.session_state.session_started = True
     st.session_state.grade_group = grade_group
+    # Voice defaults on for K-2, off for 3-5 (can be toggled in sidebar)
+    st.session_state.voice_enabled = (grade_group == "K2")
     if grade_group == "35":
         intro = "Hey there! I am Lumi, your math tutor! Ready to tackle multiplication, division, or fractions today?"
     else:
         intro = "Hi! I am Lumi, your math buddy! What math shall we do today?"
     add_message("lumi", intro)
-    speak_async(intro)
+    if st.session_state.voice_enabled:
+        speak_async(intro)
 
 def handle_voice_input():
-    """Record, transcribe, and send to Lumi — with real-time status via st.status."""
+    """Record, transcribe, and send to Lumi."""
     st.session_state.recording = True
+    msg = st.empty()
 
     try:
-        with st.status("🎤 Listening...", expanded=True) as status:
-            st.caption("Speak now — recording for 4 seconds")
+        msg.info("🎤 Listening... speak now! (4 seconds)")
+        audio = record_audio(duration=4)
 
-            audio = record_audio(duration=4)
+        msg.info("💭 Transcribing your voice...")
+        child_text = transcribe(audio)
 
-            status.update(label="💭 Transcribing your voice...", state="running")
-            child_text = transcribe(audio)
+        if not child_text:
+            msg.warning("I didn't catch that — please try again!")
+            return
 
-            if not child_text:
-                status.update(label="Didn't catch that — please try again!", state="error")
-                st.session_state.recording = False
-                return
+        msg.success(f'You said: *"{child_text}"*')
+        add_message("child", child_text)
 
-            st.caption(f'You said: *"{child_text}"*')
-            add_message("child", child_text)
-
-            status.update(label="😊 Lumi is thinking...", state="running")
-            reply, tools = ask_lumi(child_text, st.session_state.grade_group or "K2")
-            add_message("lumi", reply, tools)
+        msg.info("😊 Lumi is thinking...")
+        reply, tools = ask_lumi(child_text, st.session_state.grade_group or "K2")
+        add_message("lumi", reply, tools)
+        if st.session_state.voice_enabled:
             speak_async(reply)
-
-            status.update(label="✅ Ready!", state="complete")
-            st.session_state.status = "Ready!"
+        msg.empty()
+        st.session_state.status = "Ready!"
 
     except Exception as e:
-        st.session_state.status = f"Error: {str(e)}"
+        msg.error(f"Something went wrong — please try again. ({type(e).__name__})")
+        st.session_state.status = "Error — please try again."
 
-    st.session_state.recording = False
+    finally:
+        st.session_state.recording = False
 
 def handle_text_input(text: str):
     """Send typed text to Lumi."""
@@ -204,7 +209,8 @@ def handle_text_input(text: str):
     st.session_state.status = "Lumi is thinking..."
     reply, tools = ask_lumi(text, st.session_state.grade_group or "K2")
     add_message("lumi", reply, tools)
-    speak_async(reply)
+    if st.session_state.voice_enabled:
+        speak_async(reply)
     st.session_state.status = "Ready!"
 
 # ── Header ────────────────────────────────────────────────────────────────────
@@ -226,6 +232,15 @@ with st.sidebar:
         "Show tool calls (debug)",
         value=st.session_state.show_tools
     )
+
+    if st.session_state.grade_group == "35":
+        st.session_state.voice_enabled = st.toggle(
+            "🎤 Voice I/O",
+            value=st.session_state.voice_enabled,
+            help="Grade 3-5 students can type — toggle voice on or off anytime."
+        )
+    else:
+        st.session_state.voice_enabled = True  # always on for K-2
 
     st.markdown("---")
     if st.session_state.grade_group == "K2":
@@ -367,18 +382,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns([1, 2])
+if st.session_state.voice_enabled:
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        if st.session_state.recording:
+            st.button("⏺️ Recording...", use_container_width=True, disabled=True)
+        else:
+            if st.button("🎤  Tap to Talk!", use_container_width=True, type="primary"):
+                handle_voice_input()
+                st.rerun()
+        st.markdown('<div class="voice-hint">4 sec · auto-stops</div>', unsafe_allow_html=True)
+    text_col_container = col2
+else:
+    text_col_container = st.container()
 
-with col1:
-    if st.session_state.recording:
-        st.button("⏺️ Recording...", use_container_width=True, disabled=True)
-    else:
-        if st.button("🎤  Tap to Talk!", use_container_width=True, type="primary"):
-            handle_voice_input()
-            st.rerun()
-    st.markdown('<div class="voice-hint">4 sec · auto-stops</div>', unsafe_allow_html=True)
-
-with col2:
+with text_col_container:
     with st.form("text_form", clear_on_submit=True):
         text_col, btn_col = st.columns([4, 1])
         with text_col:
