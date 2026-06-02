@@ -6,3 +6,4 @@ scipy
 numpy
 mcp
 anthropic
+langsmith
