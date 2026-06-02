@@ -6,7 +6,7 @@ import anthropic
 from langsmith import traceable
 from langsmith.wrappers import wrap_anthropic
 
-from core.prompts import SYSTEM_PROMPT
+from core.prompts import get_system_prompt
 from core.mcp_bridge import TOOLS_ANTHROPIC, execute_tool
 
 MODEL = os.getenv("LUMI_MODEL", "claude-haiku-4-5-20251001")
@@ -22,6 +22,9 @@ client = wrap_anthropic(anthropic.Anthropic())
 
 conversation_history: list[dict] = []
 
+# Tools that need grade_group injected before execution
+_GRADE_AWARE_TOOLS = {"generate_problem", "check_grade_level"}
+
 
 def _clean(text: str) -> str:
     text = re.sub(r'\\\((.+?)\\\)', r'\1', text)
@@ -30,9 +33,10 @@ def _clean(text: str) -> str:
 
 
 @traceable(name="ask_lumi", run_type="chain")
-def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
+def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict]]:
     conversation_history.append({"role": "user", "content": user_text})
     tool_calls_log = []
+    system_prompt = get_system_prompt(grade_group)
 
     while True:
         try:
@@ -41,7 +45,7 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
                 max_tokens=300,
                 system=[{
                     "type": "text",
-                    "text": SYSTEM_PROMPT,
+                    "text": system_prompt,
                     "cache_control": {"type": "ephemeral"}
                 }],
                 tools=TOOLS_ANTHROPIC,
@@ -72,14 +76,19 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
                         "input": block.input
                     })
 
+                    # Inject grade_group for tools that need it
+                    args = dict(block.input)
+                    if block.name in _GRADE_AWARE_TOOLS:
+                        args["grade_group"] = grade_group
+
                     try:
-                        result = execute_tool(block.name, dict(block.input))
+                        result = execute_tool(block.name, args)
                     except Exception as e:
                         result = json.dumps({"error": str(e)})
 
                     tool_calls_log.append({
                         "tool": block.name,
-                        "args": dict(block.input),
+                        "args": args,
                         "result": json.loads(result)
                     })
 
@@ -97,7 +106,6 @@ def ask_lumi(user_text: str) -> tuple[str, list[dict]]:
                 block.text for block in response.content
                 if hasattr(block, "text")
             ))
-            # content must always be a list for Anthropic API consistency
             conversation_history.append({
                 "role": "assistant",
                 "content": [{"type": "text", "text": reply}]

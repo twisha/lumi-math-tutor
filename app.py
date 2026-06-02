@@ -123,7 +123,7 @@ st.markdown("""
 # ── Session state ─────────────────────────────────────────────────────────────
 
 if "messages" not in st.session_state:
-    st.session_state.messages = []          # list of {role, text, tools}
+    st.session_state.messages = []
 if "recording" not in st.session_state:
     st.session_state.recording = False
 if "status" not in st.session_state:
@@ -132,6 +132,8 @@ if "show_tools" not in st.session_state:
     st.session_state.show_tools = False
 if "session_started" not in st.session_state:
     st.session_state.session_started = False
+if "grade_group" not in st.session_state:
+    st.session_state.grade_group = None     # "K2" or "35"
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 
@@ -147,40 +149,47 @@ def speak_async(text: str):
     thread = threading.Thread(target=speak, args=(text,), daemon=True)
     thread.start()
 
-def start_session():
-    """Initialize a fresh tutoring session."""
+def start_session(grade_group: str):
+    """Initialize a fresh tutoring session for the selected grade group."""
     reset_conversation()
     st.session_state.messages = []
     st.session_state.session_started = True
-    intro = "Hi! I am Lumi, your math buddy! What math shall we do today?"
+    st.session_state.grade_group = grade_group
+    if grade_group == "35":
+        intro = "Hey there! I am Lumi, your math tutor! Ready to tackle multiplication, division, or fractions today?"
+    else:
+        intro = "Hi! I am Lumi, your math buddy! What math shall we do today?"
     add_message("lumi", intro)
     speak_async(intro)
 
 def handle_voice_input():
-    """Record, transcribe, and send to Lumi."""
-    st.session_state.status = "Listening... speak now!"
+    """Record, transcribe, and send to Lumi — with real-time status via st.status."""
     st.session_state.recording = True
 
     try:
-        # Record
-        audio = record_audio(duration=5)
-        st.session_state.status = "Thinking..."
+        with st.status("🎤 Listening...", expanded=True) as status:
+            st.caption("Speak now — recording for 4 seconds")
 
-        # Transcribe
-        child_text = transcribe(audio)
-        if not child_text:
-            st.session_state.status = "I didn't hear anything — try again!"
-            st.session_state.recording = False
-            return
+            audio = record_audio(duration=4)
 
-        add_message("child", child_text)
-        st.session_state.status = "Lumi is thinking..."
+            status.update(label="💭 Transcribing your voice...", state="running")
+            child_text = transcribe(audio)
 
-        # Get Lumi's response
-        reply, tools = ask_lumi(child_text)
-        add_message("lumi", reply, tools)
-        speak_async(reply)
-        st.session_state.status = "Ready!"
+            if not child_text:
+                status.update(label="Didn't catch that — please try again!", state="error")
+                st.session_state.recording = False
+                return
+
+            st.caption(f'You said: *"{child_text}"*')
+            add_message("child", child_text)
+
+            status.update(label="😊 Lumi is thinking...", state="running")
+            reply, tools = ask_lumi(child_text, st.session_state.grade_group or "K2")
+            add_message("lumi", reply, tools)
+            speak_async(reply)
+
+            status.update(label="✅ Ready!", state="complete")
+            st.session_state.status = "Ready!"
 
     except Exception as e:
         st.session_state.status = f"Error: {str(e)}"
@@ -188,12 +197,12 @@ def handle_voice_input():
     st.session_state.recording = False
 
 def handle_text_input(text: str):
-    """Send typed text to Lumi (fallback for testing)."""
+    """Send typed text to Lumi."""
     if not text.strip():
         return
     add_message("child", text)
     st.session_state.status = "Lumi is thinking..."
-    reply, tools = ask_lumi(text)
+    reply, tools = ask_lumi(text, st.session_state.grade_group or "K2")
     add_message("lumi", reply, tools)
     speak_async(reply)
     st.session_state.status = "Ready!"
@@ -219,14 +228,26 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown("### 📚 What Lumi Teaches")
-    st.markdown("""
+    if st.session_state.grade_group == "K2":
+        st.markdown("### 📚 K–2 Topics")
+        st.markdown("""
     - Counting (1–20)
     - Addition within 20
     - Subtraction within 20
     - Number recognition
     - Simple word problems
     """)
+    elif st.session_state.grade_group == "35":
+        st.markdown("### 📚 Grade 3–5 Topics")
+        st.markdown("""
+    - Multiplication (1–12)
+    - Division within 144
+    - Add/Subtract within 1,000
+    - Basic fractions
+    - Multi-step word problems
+    """)
+    else:
+        st.markdown("### 📚 Select a grade to begin")
 
     st.markdown("---")
     st.markdown("### 🛡️ Guardrails Active")
@@ -237,18 +258,57 @@ with st.sidebar:
     """)
 
     st.markdown("---")
-    if st.button("🔄 New Session", use_container_width=True):
-        start_session()
-        st.rerun()
+    if st.session_state.session_started:
+        if st.button("🔄 New Session", use_container_width=True):
+            st.session_state.session_started = False
+            st.session_state.grade_group = None
+            reset_conversation()
+            st.session_state.messages = []
+            st.rerun()
 
-# ── Start session if not started ──────────────────────────────────────────────
+# ── Grade picker (shown before session starts) ────────────────────────────────
 
 if not st.session_state.session_started:
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("▶️ Start Session with Lumi!", use_container_width=True):
-            start_session()
+    st.markdown("""
+    <div style='text-align:center; padding: 1rem 0 1.5rem;'>
+        <p style='color:#aaa; font-size:1.1rem;'>Who are we tutoring today?</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("""
+        <div style='background:#FFF3CD; border:2px solid #FFD966; border-radius:16px;
+                    padding:1.5rem; text-align:center; min-height:160px;'>
+            <div style='font-size:2rem;'>🌱</div>
+            <div style='font-size:1.3rem; font-weight:700; color:#FF8C00;'>K – 2</div>
+            <div style='color:#666; font-size:0.9rem; margin-top:0.4rem;'>Ages 5–7</div>
+            <div style='color:#888; font-size:0.82rem; margin-top:0.6rem;'>
+                Counting · Addition · Subtraction
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("▶️ Start K–2 Session", use_container_width=True, type="primary"):
+            start_session("K2")
             st.rerun()
+
+    with col2:
+        st.markdown("""
+        <div style='background:#E8F4FF; border:2px solid #90CAF9; border-radius:16px;
+                    padding:1.5rem; text-align:center; min-height:160px;'>
+            <div style='font-size:2rem;'>🚀</div>
+            <div style='font-size:1.3rem; font-weight:700; color:#1565C0;'>Grade 3 – 5</div>
+            <div style='color:#666; font-size:0.9rem; margin-top:0.4rem;'>Ages 8–10</div>
+            <div style='color:#888; font-size:0.82rem; margin-top:0.6rem;'>
+                Multiply · Divide · Fractions
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("▶️ Start Grade 3–5 Session", use_container_width=True):
+            start_session("35")
+            st.rerun()
+
     st.stop()
 
 # ── Chat history ──────────────────────────────────────────────────────────────
@@ -301,18 +361,24 @@ st.markdown("---")
 
 # ── Input area ────────────────────────────────────────────────────────────────
 
+st.markdown("""
+<style>
+.voice-hint { text-align:center; color:#aaa; font-size:0.8rem; margin-top:-0.4rem; }
+</style>
+""", unsafe_allow_html=True)
+
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    voice_label = "⏺️ Recording..." if st.session_state.recording else "🎤 Tap to Talk!"
-    voice_disabled = st.session_state.recording
-
-    if st.button(voice_label, use_container_width=True, disabled=voice_disabled):
-        handle_voice_input()
-        st.rerun()
+    if st.session_state.recording:
+        st.button("⏺️ Recording...", use_container_width=True, disabled=True)
+    else:
+        if st.button("🎤  Tap to Talk!", use_container_width=True, type="primary"):
+            handle_voice_input()
+            st.rerun()
+    st.markdown('<div class="voice-hint">4 sec · auto-stops</div>', unsafe_allow_html=True)
 
 with col2:
-    # Text input as fallback
     with st.form("text_form", clear_on_submit=True):
         text_col, btn_col = st.columns([4, 1])
         with text_col:
