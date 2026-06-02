@@ -51,12 +51,13 @@ async def list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="generate_problem",
-            description="Generate a random K-2 math problem.",
+            description="Generate a random math problem appropriate for the current grade group.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "operation":   {"type": "string", "enum": ["addition", "subtraction"]},
-                    "max_number":  {"type": "integer", "description": "Largest number to use (max 20)."}
+                    "operation":    {"type": "string", "enum": ["addition", "subtraction", "multiplication", "division"]},
+                    "max_number":   {"type": "integer", "description": "Largest number to use (K-2 only, max 20)."},
+                    "grade_group":  {"type": "string", "enum": ["K2", "35"], "description": "Grade group: K2 or 35."}
                 },
                 "required": []
             }
@@ -74,11 +75,12 @@ async def list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="check_grade_level",
-            description="Check whether a math topic is within K-2 scope.",
+            description="Check whether a math topic is within scope for the current grade group.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "topic": {"type": "string", "description": "The math topic or question."}
+                    "topic":       {"type": "string", "description": "The math topic or question."},
+                    "grade_group": {"type": "string", "enum": ["K2", "35"], "description": "Grade group: K2 or 35."}
                 },
                 "required": ["topic"]
             }
