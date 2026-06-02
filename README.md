@@ -5,8 +5,9 @@ A voice-enabled AI math tutor for **Kindergarten through Grade 5** (ages 5–10)
 ## Features
 
 - **Grade selection** — choose K–2 or Grade 3–5 at the start of each session; locked for that session
-- **Voice input** — child speaks; Whisper transcribes locally (4-second recording with real-time status)
+- **Voice input** — child speaks; Whisper transcribes locally (4-second recording with live status feedback)
 - **Voice output** — Lumi responds aloud via pyttsx3 (emojis stripped before speaking)
+- **Voice toggle** — voice I/O is always on for K–2; Grade 3–5 defaults to text-only with an optional sidebar toggle
 - **Agentic tool use** — Lumi calls tools via MCP to verify answers (no hallucinated math)
 - **Grade-aware guardrails** — K–2 blocks multiplication/fractions; Grade 3–5 allows them but blocks algebra/calculus
 - **Prompt caching** — system prompt cached with Anthropic API to reduce latency and cost
@@ -150,7 +151,7 @@ lumi-math-tutor/
 | Action | How |
 | --- | --- |
 | Choose grade | Select **K–2** or **Grade 3–5** on the start screen |
-| Voice input | Click **Tap to Talk!**, speak for 4 seconds |
+| Voice input | Click **Tap to Talk!**, speak for 4 seconds *(K–2 only by default)* |
 | Text input | Type in the text box and click **Send** |
 | New session | Click **New Session** in the sidebar (resets grade selection) |
 | Debug tools | Toggle **Show tool calls** in the sidebar |
