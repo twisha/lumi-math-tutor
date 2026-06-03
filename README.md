@@ -157,6 +157,20 @@ lumi-math-tutor/
 | Debug tools | Toggle **Show tool calls** in the sidebar |
 | View traces | Open [smith.langchain.com](https://smith.langchain.com) → `lumi-math-tutor` project |
 
+## Design Decisions
+
+### Why Streamlit instead of Chainlit
+
+Chainlit is purpose-built for chat UIs and was a natural candidate for this project. It was prototyped on the `feature/improvements` branch but was not used in `main` for three reasons:
+
+1. **Python compatibility.** Chainlit requires Python ≤ 3.12. This project targets Python 3.9–3.13 and uses `sounddevice` + `pyttsx3` for voice I/O; dropping Python 3.13 support for a UI framework was not worth the trade-off.
+
+2. **Synchronous voice pipeline.** `pyttsx3` and `sounddevice` are blocking, synchronous libraries. Chainlit's async-first architecture requires wrapping every blocking call in `asyncio.run_in_executor`, adding boilerplate and making the recording/playback flow harder to reason about. Streamlit's simpler threading model works naturally with the voice pipeline.
+
+3. **Grade-picker session state.** Lumi's session flow (grade selection → locked session → reset) maps cleanly onto Streamlit's `st.session_state`. Replicating the same locked-grade UX in Chainlit required custom session middleware that added complexity without user-facing benefit.
+
+Chainlit remains available on the `feature/improvements` branch for environments that meet its Python requirement and do not need local voice I/O.
+
 ## Branches
 
 | Branch | Description |
