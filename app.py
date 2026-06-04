@@ -10,7 +10,7 @@ import threading
 import streamlit as st
 from core.tutor_brain import ask_lumi, reset_conversation
 from core.speech_input import record_audio, transcribe
-from core.speech_output import speak
+from core.speech_output import speak, stop_speaking
 
 # ── Page config ───────────────────────────────────────────────────────────────
 
@@ -169,6 +169,7 @@ def start_session(grade_group: str):
 
 def handle_voice_input():
     """Record, transcribe, and send to Lumi."""
+    stop_speaking()  # silence Lumi so mic doesn't pick up speaker output
     st.session_state.recording = True
     msg = st.empty()
 
