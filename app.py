@@ -6,6 +6,7 @@ Run with:
     export $(cat .env | xargs) && streamlit run app.py
 """
 
+import time
 import threading
 import streamlit as st
 from core.tutor_brain import ask_lumi, reset_conversation
@@ -124,8 +125,6 @@ st.markdown("""
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "recording" not in st.session_state:
-    st.session_state.recording = False
 if "status" not in st.session_state:
     st.session_state.status = "Ready!"
 if "show_tools" not in st.session_state:
@@ -136,6 +135,12 @@ if "grade_group" not in st.session_state:
     st.session_state.grade_group = None     # "K2" or "35"
 if "voice_enabled" not in st.session_state:
     st.session_state.voice_enabled = True   # always on for K-2; optional for 3-5
+if "last_recording_end" not in st.session_state:
+    st.session_state.last_recording_end = 0.0
+
+# recording is set and cleared within a single script run — reset each run so
+# a crash or queued double-click can never leave the button permanently disabled.
+st.session_state.recording = False
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 
@@ -167,8 +172,14 @@ def start_session(grade_group: str):
     if st.session_state.voice_enabled:
         speak_async(intro)
 
+_RECORDING_COOLDOWN = 2.0  # seconds to ignore a queued double-click after recording ends
+
 def handle_voice_input():
     """Record, transcribe, and send to Lumi."""
+    # Discard any click that was queued while the previous recording was still running.
+    if time.time() - st.session_state.last_recording_end < _RECORDING_COOLDOWN:
+        return
+
     stop_speaking()  # silence Lumi so mic doesn't pick up speaker output
     st.session_state.recording = True
     msg = st.empty()
@@ -201,6 +212,7 @@ def handle_voice_input():
 
     finally:
         st.session_state.recording = False
+        st.session_state.last_recording_end = time.time()
 
 def handle_text_input(text: str):
     """Send typed text to Lumi."""
