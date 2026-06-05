@@ -225,6 +225,7 @@
   /* ── Slide-specific ── */
   #s1 { background: radial-gradient(ellipse at 60% 40%, #1a1130 0%, #0f0f1a 70%); }
   #s6 { background: radial-gradient(ellipse at 50% 50%, #1a1008 0%, #0f0f1a 70%); }
+  #s7 { background: radial-gradient(ellipse at 40% 60%, #0a1a1a 0%, #0f0f1a 70%); }
 </style>
 </head>
 <body>
@@ -235,16 +236,21 @@
   <div class="slide active" id="s1">
     <div class="eyebrow">AI Engineering Capstone</div>
     <h1>✨ Lumi</h1>
-    <p style="font-size:1.4rem; color:#FFD966; margin-top:0.4rem;">K-2 Voice Math Tutor</p>
-    <p style="margin-top:1rem;">A fully-working AI tutoring app built with Claude API, MCP tools,<br>local speech I/O, and agentic tool use — from scratch.</p>
+    <p style="font-size:1.4rem; color:#FFD966; margin-top:0.4rem;">Voice Math Tutor for Young Kids · K–2 &amp; Grade 3–5</p>
+    <p style="margin-top:1rem;">A fully-working AI tutoring app built with Claude API, MCP tools,<br>local speech I/O, visual aids, and agentic tool use.</p>
     <div class="tags" style="margin-top:2rem;">
       <span class="tag">Claude API</span>
       <span class="tag">MCP</span>
-      <span class="tag">Whisper</span>
+      <span class="tag">Whisper STT</span>
+      <span class="tag">macOS TTS</span>
       <span class="tag">Streamlit</span>
-      <span class="tag">pyttsx3</span>
+      <span class="tag">LangSmith</span>
       <span class="tag">Agentic AI</span>
+      <span class="tag">Visual Aids</span>
     </div>
+    <p style="margin-top:1.6rem; font-size:0.82rem; color:rgba(255,255,255,0.3);">
+      Designed &amp; architected by us · Developed with <strong style="color:rgba(255,180,0,0.6)">Claude Code</strong>
+    </p>
   </div>
 
   <!-- ── Slide 2: What We Built ── -->
@@ -255,22 +261,22 @@
       <div class="card">
         <div class="icon">⚠️</div>
         <h3>The Problem</h3>
-        <p>K-2 children can't type. Traditional chat tutors are inaccessible to 5–7 year olds who need voice, encouragement, and verified answers — not hallucinated math.</p>
+        <p>Young children can't type. Traditional chat tutors are inaccessible to 5–10 year olds who need voice, patience, verified answers — not hallucinated math.</p>
       </div>
       <div class="card">
         <div class="icon">✨</div>
         <h3>The Solution</h3>
-        <p>Lumi listens via Whisper, thinks with Claude, verifies answers through MCP tools, and talks back with pyttsx3. A real agentic AI loop — end to end.</p>
+        <p>Lumi listens via Whisper, thinks with Claude, verifies answers through MCP tools, speaks back via macOS TTS. A real agentic AI loop — end to end.</p>
       </div>
       <div class="card">
         <div class="icon">🎓</div>
-        <h3>Teaches</h3>
-        <p>Counting, addition, subtraction within 20. Guides with hints, never reveals the answer immediately. Redirects off-topic questions warmly.</p>
+        <h3>Two Grade Levels</h3>
+        <p>K–2: counting, addition &amp; subtraction within 20, with emoji + hop-path visual aids. Grade 3–5: multiplication, division, fractions, multi-step problems.</p>
       </div>
       <div class="card">
         <div class="icon">🛡️</div>
         <h3>Guardrails</h3>
-        <p>Classifies every input for topic and grade level before responding. Out-of-scope requests get a warm redirect, never an attempt to answer.</p>
+        <p>Every input is classified for topic and grade level before responding. Out-of-scope requests get a warm redirect. Answers always tool-verified — never guessed.</p>
       </div>
     </div>
   </div>
@@ -282,26 +288,29 @@
     <div class="flow">
       <div class="flow-box"><div class="label">Child</div><div class="name">👦 Voice / Text</div></div>
       <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Speech Input</div><div class="name">Whisper STT</div></div>
+      <div class="flow-box"><div class="label">Speech Input</div><div class="name">Whisper + VAD</div></div>
       <div class="arrow">→</div>
       <div class="flow-box"><div class="label">Brain</div><div class="name">tutor_brain.py</div></div>
       <div class="arrow">⇄</div>
-      <div class="flow-box"><div class="label">LLM</div><div class="name">Claude API</div></div>
+      <div class="flow-box"><div class="label">LLM</div><div class="name">Claude Haiku</div></div>
     </div>
     <div class="flow" style="margin-top:0.8rem;">
       <div class="flow-box"><div class="label">MCP Client</div><div class="name">mcp_bridge.py</div></div>
       <div class="arrow">⇄ stdio ⇄</div>
       <div class="flow-box"><div class="label">MCP Server</div><div class="name">mcp_server.py</div></div>
       <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Tools</div><div class="name">tools.py</div></div>
+      <div class="flow-box"><div class="label">Tools</div><div class="name">calculate · check · generate</div></div>
     </div>
     <div class="flow" style="margin-top:0.8rem;">
-      <div class="flow-box"><div class="label">Reply</div><div class="name">tutor_brain.py</div></div>
+      <div class="flow-box"><div class="label">Reply + Tag</div><div class="name">tutor_brain.py</div></div>
       <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Speech Output</div><div class="name">pyttsx3 TTS</div></div>
+      <div class="flow-box"><div class="label">Visual Aid</div><div class="name">visual_aids.py</div></div>
+      <div class="arrow">→</div>
+      <div class="flow-box"><div class="label">Speech Out</div><div class="name">macOS say TTS</div></div>
       <div class="arrow">→</div>
       <div class="flow-box"><div class="label">Child</div><div class="name">🔊 Hears Lumi</div></div>
     </div>
+    <p style="margin-top:1.2rem; font-size:0.8rem; color:rgba(255,255,255,0.3);">LangSmith traces every ask_lumi() call for observability</p>
   </div>
 
   <!-- ── Slide 4: AI Concepts ── -->
@@ -312,69 +321,101 @@
       <div class="card">
         <div class="icon">✏️</div>
         <h3>Prompt Engineering</h3>
-        <p>System prompt encodes Lumi's persona, teaching sequence, hint escalation, and guardrails entirely in natural language. No fine-tuning needed.</p>
+        <p>Separate system prompts for K–2 and Grade 3–5 encode persona, teaching strategy, hint escalation, and guardrails entirely in natural language. Zero fine-tuning.</p>
       </div>
       <div class="card">
         <div class="icon">🔧</div>
         <h3>Agentic Tool Use</h3>
-        <p>Claude autonomously decides when to call <code>calculate()</code>, <code>check_answer()</code>, or <code>generate_problem()</code> — never guessing at math.</p>
+        <p>Claude autonomously decides when to call <code>calculate()</code>, <code>check_answer()</code>, <code>generate_problem()</code>, <code>check_topic()</code>, or <code>check_grade_level()</code>.</p>
       </div>
       <div class="card">
         <div class="icon">🔌</div>
         <h3>MCP Protocol</h3>
-        <p>Tools run as a local MCP server over stdio. The bridge translates MCP schemas to Anthropic format — model-agnostic and swappable.</p>
+        <p>Tools run as a local MCP server over stdio. The bridge translates MCP schemas to Anthropic tool format — model-agnostic and fully swappable.</p>
       </div>
       <div class="card">
-        <div class="icon">🛡️</div>
-        <h3>Guardrails</h3>
-        <p>Defense-in-depth: input classification tools <em>and</em> system prompt reinforcement catch off-topic and out-of-grade requests at two layers.</p>
+        <div class="icon">🏷️</div>
+        <h3>LLM Self-Tagging</h3>
+        <p>Lumi appends <code>[COUNT:N]</code> when asking the child to count aloud. The app strips the tag, computes recording duration as N+3 seconds, and adapts — no regex, no rules.</p>
       </div>
       <div class="card">
         <div class="icon">⚡</div>
         <h3>Prompt Caching</h3>
-        <p>The system prompt is cached with Anthropic's ephemeral cache, reducing latency and cost on every multi-turn conversation turn.</p>
+        <p>The system prompt is marked ephemeral with Anthropic's cache_control API, reducing latency and token cost on every multi-turn conversation turn.</p>
       </div>
       <div class="card">
         <div class="icon">🎙️</div>
         <h3>Multimodal I/O</h3>
-        <p>Whisper (transformer-based STT) for voice input. pyttsx3 for TTS output. The same transformer architecture powers both the LLM and speech model.</p>
+        <p>Whisper (transformer STT) with silence-detection early-stop for voice input. macOS <code>say</code> subprocess with Unicode normalization and VAD-aware duration for TTS output.</p>
       </div>
     </div>
   </div>
 
-  <!-- ── Slide 5: Demo ── -->
+  <!-- ── Slide 5: Visual Aids ── -->
   <div class="slide" id="s5">
+    <div class="eyebrow">K–2 Feature Highlight</div>
+    <h2>Context-Aware Visual Aids</h2>
+    <div class="cards two" style="max-width:820px;">
+      <div class="card">
+        <div class="icon">🎨</div>
+        <h3>Hop-Path Number Line</h3>
+        <p>Replaces a tiny 0–20 ruler with large 56px circles connected by arrows. ★ START marks the larger operand; yellow circles show each hop; a dashed ? marks where the child must land — answer intentionally hidden.</p>
+      </div>
+      <div class="card">
+        <div class="icon">♿</div>
+        <h3>Color-Blind Accessible</h3>
+        <p>Color is never the only signal. Start circle is larger with a ★ icon and "START" label. Answer slot has a dashed border and "YOU!" label. Any child can follow the path without relying on color.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🧠</div>
+        <h3>Shown Only When Struggling</h3>
+        <p>Visual is hidden on first problem presentation. It appears only when the child asks for help or gives a wrong answer — detected via the child's words and <code>check_answer()</code> tool result.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔗</div>
+        <h3>Prompt ↔ Visual Alignment</h3>
+        <p>Lumi's spoken hint references the same shapes: "Look at the ★ START circle — hop along each circle and tell me what number you land on at the ? circle." Visual and voice teach the same strategy.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slide 6: Demo ── -->
+  <div class="slide" id="s6">
     <div class="eyebrow">Live Demo</div>
     <h2>Lumi in Action</h2>
     <div class="chat">
-      <div class="bubble child">What is 4 + 9? 👦</div>
-      <div class="tool-trace">→ calculate("4 + 9") = 13</div>
-      <div class="bubble lumi">😊 Lumi: Great question! What do you think the answer might be?</div>
-      <div class="bubble child">15? 👦</div>
-      <div class="tool-trace">→ check_answer(expected=13, given=15) → incorrect</div>
-      <div class="bubble lumi">😊 Lumi: So close! Try starting at 9 and counting up 4 more — 9… 10…</div>
+      <div class="bubble child">What is 4 plus 9? 👦</div>
+      <div class="tool-trace">→ calculate("4+9") = 13 &nbsp;|&nbsp; [COUNT:N] not emitted</div>
+      <div class="bubble lumi">😊 Lumi: Great question! What do you think 4 plus 9 equals?</div>
+      <div class="bubble child">Umm… 15? 👦</div>
+      <div class="tool-trace">→ check_answer(expected=13, given=15) → correct: false</div>
+      <div class="bubble lumi">😊 Lumi: Good try! Look at the ★ START circle — that is where we begin. Hop along each circle and tell me what number you land on at the ? circle.</div>
+      <div class="tool-trace">→ show_visual = true &nbsp;|&nbsp; hop-path rendered: ★9 → 10 → 11 → 12 → ?</div>
       <div class="bubble child">13! 👦</div>
-      <div class="tool-trace">→ check_answer(expected=13, given=13) → correct ✓</div>
-      <div class="bubble lumi">⭐ Lumi: Yes! 4 + 9 = 13 — you are a math superstar! Want to try another one?</div>
+      <div class="tool-trace">→ check_answer(expected=13, given=13) → correct: true ✓</div>
+      <div class="bubble lumi">⭐ Lumi: YES! 4 + 9 = 13 — you are a math superstar! Want to try another one?</div>
     </div>
   </div>
 
-  <!-- ── Slide 6: Close ── -->
-  <div class="slide" id="s6">
+  <!-- ── Slide 7: Close ── -->
+  <div class="slide" id="s7">
     <div class="eyebrow">Capstone Project · AI Engineering Course</div>
     <h1>✨ Lumi</h1>
-    <p style="margin-top:1.2rem; font-size:1.1rem;">A K-2 voice math tutor that applies six AI engineering fundamentals<br>in a single working product — built end to end.</p>
-    <div class="cards two" style="margin-top:2rem; max-width:660px;">
+    <p style="margin-top:1.2rem; font-size:1.1rem;">A voice math tutor for young kids that applies six AI engineering fundamentals<br>in a single working product — built end to end.</p>
+    <div class="cards two" style="margin-top:2rem; max-width:700px;">
       <div class="card">
         <h3>What We Applied</h3>
-        <p style="line-height:2;">Prompt Engineering · Agentic Tool Use<br>MCP Protocol · Guardrails<br>Prompt Caching · Multimodal I/O</p>
+        <p style="line-height:2.1;">Prompt Engineering · Agentic Tool Use<br>MCP Protocol · Guardrails<br>LLM Self-Tagging · Prompt Caching<br>Multimodal I/O · Observability</p>
       </div>
       <div class="card">
         <h3>Stack</h3>
-        <p style="line-height:2;">Claude Haiku API · MCP (stdio)<br>Whisper STT · pyttsx3 TTS<br>Streamlit · Python</p>
+        <p style="line-height:2.1;">Claude Haiku API · MCP (stdio)<br>Whisper STT · macOS say TTS<br>Silence Detection (VAD)<br>Streamlit · LangSmith · Python</p>
       </div>
     </div>
-    <p style="margin-top:2rem; color:rgba(255,255,255,0.3); font-size:0.85rem;">github.com/twisha/lumi-math-tutor</p>
+    <p style="margin-top:1.6rem; color:rgba(255,255,255,0.3); font-size:0.85rem;">github.com/twisha/lumi-math-tutor</p>
+    <p style="margin-top:0.6rem; font-size:0.78rem; color:rgba(255,255,255,0.2);">
+      Architecture &amp; AI design by us &nbsp;·&nbsp; Code developed with Claude Code (Anthropic)
+    </p>
   </div>
 
 </div>
@@ -382,7 +423,7 @@
 <!-- ── Navigation ── -->
 <div class="nav">
   <button onclick="go(-1)">← Prev</button>
-  <span class="counter" id="counter">1 / 6</span>
+  <span class="counter" id="counter">1 / 7</span>
   <button onclick="go(1)">Next →</button>
 </div>
 
