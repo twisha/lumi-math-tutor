@@ -26,14 +26,19 @@ conversation_history: list[dict] = []
 _GRADE_AWARE_TOOLS = {"generate_problem", "check_grade_level"}
 
 
-def _clean(text: str) -> str:
+def _clean(text: str) -> tuple[str, int]:
+    """Strip LaTeX escapes and extract the [COUNT:N] tag if present.
+    Returns (cleaned_text, count_n) where count_n=0 means no counting task."""
     text = re.sub(r'\\\((.+?)\\\)', r'\1', text)
     text = re.sub(r'\\\[(.+?)\\\]', r'\1', text)
-    return text.strip()
+    m = re.search(r'\[COUNT:(\d+)\]', text, re.IGNORECASE)
+    count_n = int(m.group(1)) if m else 0
+    text = re.sub(r'\s*\[COUNT:\d+\]\s*$', '', text, flags=re.IGNORECASE).strip()
+    return text, count_n
 
 
 @traceable(name="ask_lumi", run_type="chain")
-def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict]]:
+def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict], int]:
     conversation_history.append({"role": "user", "content": user_text})
     tool_calls_log = []
     system_prompt = get_system_prompt(grade_group)
@@ -53,13 +58,13 @@ def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict]]:
             )
         except anthropic.AuthenticationError:
             conversation_history.pop()
-            return "Oops! There is a problem with my connection. Please check the API key.", []
+            return "Oops! There is a problem with my connection. Please check the API key.", [], 0
         except anthropic.RateLimitError:
             conversation_history.pop()
-            return "I am a little tired right now! Please try again in a moment. 😊", []
+            return "I am a little tired right now! Please try again in a moment. 😊", [], 0
         except anthropic.APIError as e:
             conversation_history.pop()
-            return f"Something went wrong — please try again! ({type(e).__name__})", []
+            return f"Something went wrong — please try again! ({type(e).__name__})", [], 0
 
         if response.stop_reason == "tool_use":
             assistant_content = []
@@ -102,15 +107,13 @@ def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict]]:
             conversation_history.append({"role": "user", "content": tool_results})
 
         else:
-            reply = _clean("".join(
-                block.text for block in response.content
-                if hasattr(block, "text")
-            ))
+            raw = "".join(block.text for block in response.content if hasattr(block, "text"))
+            reply, is_counting = _clean(raw)
             conversation_history.append({
                 "role": "assistant",
                 "content": [{"type": "text", "text": reply}]
             })
-            return reply, tool_calls_log
+            return reply, tool_calls_log, is_counting
 
 
 def reset_conversation():

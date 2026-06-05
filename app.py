@@ -12,6 +12,7 @@ import streamlit as st
 from core.tutor_brain import ask_lumi, reset_conversation
 from core.speech_input import record_audio, transcribe
 from core.speech_output import speak, stop_speaking
+from core.visual_aids import detect_k2_problem, render_k2_visual
 
 # ── Page config ───────────────────────────────────────────────────────────────
 
@@ -107,6 +108,17 @@ st.markdown("""
     .stButton > button:hover {
         transform: scale(1.03);
     }
+    /* Tap to Talk — high contrast: dark text on vivid amber */
+    .stButton > button[kind="primary"] {
+        background-color: #FFB300 !important;
+        color: #1a1a1a !important;
+        font-size: 1.3rem !important;
+        font-weight: 700 !important;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background-color: #FFA000 !important;
+        color: #1a1a1a !important;
+    }
 
     /* Status bar */
     .status-bar {
@@ -137,6 +149,8 @@ if "voice_enabled" not in st.session_state:
     st.session_state.voice_enabled = True   # always on for K-2; optional for 3-5
 if "last_recording_end" not in st.session_state:
     st.session_state.last_recording_end = 0.0
+if "active_k2_problem" not in st.session_state:
+    st.session_state.active_k2_problem = None  # (a, b, op) of current problem
 
 # recording is set and cleared within a single script run — reset each run so
 # a crash or queued double-click can never leave the button permanently disabled.
@@ -144,11 +158,49 @@ st.session_state.recording = False
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 
-def add_message(role: str, text: str, tools: list = None):
+import re as _re
+
+def _extract_problem_from_tools(tools: list):
+    """Parse (a, b, op) from a calculate() tool call expression, e.g. '8+5' → (8,5,'+')."""
+    for tc in tools:
+        if tc.get("tool") == "calculate":
+            expr = tc.get("result", {}).get("expression", "")
+            m = _re.match(r'(\d+)\s*([+\-])\s*(\d+)', expr)
+            if m:
+                a, op, b = int(m.group(1)), m.group(2), int(m.group(3))
+                if 0 <= a <= 20 and 0 <= b <= 20:
+                    return (a, b, op)
+    return None
+
+_HELP_PHRASES = ("help", "teach", "don't know", "not sure", "confused",
+                 "explain", "show me", "how do", "stuck", "i don't", "no idea")
+
+def _should_show_visual(child_text: str, tools: list) -> bool:
+    """Return True when the child asks for help or gives a wrong answer."""
+    if any(p in child_text.lower() for p in _HELP_PHRASES):
+        return True
+    for tc in tools:
+        if tc.get("tool") == "check_answer":
+            if not tc.get("result", {}).get("correct", True):
+                return True
+    return False
+
+def add_message(role: str, text: str, tools: list = None,
+                show_visual: bool = False, count_n: int = 0):
+    tools = tools or []
+    problem = None
+    if role == "lumi" and st.session_state.grade_group == "K2":
+        detected = _extract_problem_from_tools(tools) or detect_k2_problem(text)
+        if detected:
+            st.session_state.active_k2_problem = detected
+        if show_visual and st.session_state.active_k2_problem:
+            problem = st.session_state.active_k2_problem
     st.session_state.messages.append({
         "role": role,
         "text": text,
-        "tools": tools or []
+        "tools": tools,
+        "problem": problem,
+        "count_n": count_n,
     })
 
 def speak_async(text: str):
@@ -162,6 +214,7 @@ def start_session(grade_group: str):
     st.session_state.messages = []
     st.session_state.session_started = True
     st.session_state.grade_group = grade_group
+    st.session_state.active_k2_problem = None
     # Voice defaults on for K-2, off for 3-5 (can be toggled in sidebar)
     st.session_state.voice_enabled = (grade_group == "K2")
     if grade_group == "35":
@@ -174,6 +227,14 @@ def start_session(grade_group: str):
 
 _RECORDING_COOLDOWN = 2.0  # seconds to ignore a queued double-click after recording ends
 
+def _recording_duration() -> int:
+    """Compute recording window from Lumi's [COUNT:N] tag: N sec + 3 s buffer, min 4, max 30."""
+    for msg in reversed(st.session_state.get("messages", [])):
+        if msg["role"] == "lumi":
+            n = msg.get("count_n", 0)
+            return min(30, max(4, n + 3)) if n else 4
+    return 4
+
 def handle_voice_input():
     """Record, transcribe, and send to Lumi."""
     # Discard any click that was queued while the previous recording was still running.
@@ -185,8 +246,9 @@ def handle_voice_input():
     msg = st.empty()
 
     try:
-        msg.info("🎤 Listening... speak now! (4 seconds)")
-        audio = record_audio(duration=4)
+        rec_secs = _recording_duration()
+        msg.info(f"🎤 Listening... speak now! ({rec_secs} seconds)")
+        audio = record_audio(duration=rec_secs)
 
         msg.info("💭 Transcribing your voice...")
         child_text = transcribe(audio)
@@ -199,8 +261,9 @@ def handle_voice_input():
         add_message("child", child_text)
 
         msg.info("😊 Lumi is thinking...")
-        reply, tools = ask_lumi(child_text, st.session_state.grade_group or "K2")
-        add_message("lumi", reply, tools)
+        reply, tools, count_n = ask_lumi(child_text, st.session_state.grade_group or "K2")
+        show_vis = _should_show_visual(child_text, tools) if st.session_state.grade_group == "K2" else False
+        add_message("lumi", reply, tools, show_visual=show_vis, count_n=count_n)
         if st.session_state.voice_enabled:
             speak_async(reply)
         msg.empty()
@@ -220,8 +283,9 @@ def handle_text_input(text: str):
         return
     add_message("child", text)
     st.session_state.status = "Lumi is thinking..."
-    reply, tools = ask_lumi(text, st.session_state.grade_group or "K2")
-    add_message("lumi", reply, tools)
+    reply, tools, count_n = ask_lumi(text, st.session_state.grade_group or "K2")
+    show_vis = _should_show_visual(text, tools) if st.session_state.grade_group == "K2" else False
+    add_message("lumi", reply, tools, show_visual=show_vis, count_n=count_n)
     if st.session_state.voice_enabled:
         speak_async(reply)
     st.session_state.status = "Ready!"
@@ -350,6 +414,9 @@ with chat_container:
                 f'<div class="bubble-lumi">😊 <b>Lumi:</b> {msg["text"]}</div>',
                 unsafe_allow_html=True
             )
+            # K-2 visual aid: only shown when child is struggling or asks for help
+            if msg.get("problem"):
+                st.markdown(render_k2_visual(*msg["problem"]), unsafe_allow_html=True)
             # Show tool calls if debug mode is on
             if st.session_state.show_tools and msg["tools"]:
                 with st.expander("🔧 Tools used", expanded=False):
@@ -404,7 +471,7 @@ if st.session_state.voice_enabled:
             if st.button("🎤  Tap to Talk!", use_container_width=True, type="primary"):
                 handle_voice_input()
                 st.rerun()
-        st.markdown('<div class="voice-hint">4 sec · auto-stops</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="voice-hint">{_recording_duration()} sec · auto-stops</div>', unsafe_allow_html=True)
     text_col_container = col2
 else:
     text_col_container = st.container()
