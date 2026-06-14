@@ -1,6 +1,12 @@
+import os
 import re
 import subprocess
+import tempfile
 import threading
+
+import numpy as np
+import scipy.io.wavfile
+import sounddevice as sd
 
 
 def _strip_emojis(text: str) -> str:
@@ -20,38 +26,44 @@ def _strip_emojis(text: str) -> str:
 
 _proc: subprocess.Popen | None = None
 _proc_lock = threading.Lock()
+_sd_playing = False
+
+
+def list_output_devices() -> list[dict]:
+    """Return all available output devices as list of {index, name}."""
+    return [
+        {"index": i, "name": dev["name"]}
+        for i, dev in enumerate(sd.query_devices())
+        if dev["max_output_channels"] > 0
+    ]
 
 
 def stop_speaking() -> None:
-    """Kill any in-progress `say` process immediately (called before recording starts)."""
-    global _proc
+    """Kill any in-progress speech immediately (called before recording starts)."""
+    global _proc, _sd_playing
     with _proc_lock:
         if _proc and _proc.poll() is None:
             _proc.kill()
             _proc.wait()
         _proc = None
+    if _sd_playing:
+        sd.stop()
 
 
 def _clean_for_speech(text: str) -> str:
     """Strip markdown and visual content that should never be read aloud."""
-    # Remove fenced code blocks entirely
     text = re.sub(r'```[\s\S]*?```', '', text)
-    # Strip markdown bold/italic/inline-code so say() doesn't read "asterisk asterisk"
-    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)   # **bold** → bold
-    text = re.sub(r'\*(.+?)\*',     r'\1', text)   # *italic* → italic
-    text = re.sub(r'`([^`]+)`',     r'\1', text)   # `code` → code
-    # Remove lines that look like visual helper content
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'\*(.+?)\*',     r'\1', text)
+    text = re.sub(r'`([^`]+)`',     r'\1', text)
     _SKIP = ('visual helper', 'number line', '•', '* ', '- ')
     lines = [
         ln for ln in text.splitlines()
         if not any(ln.strip().lower().startswith(p) for p in _SKIP)
     ]
     text = ' '.join(ln.strip() for ln in lines if ln.strip())
-    # Remove inline number sequences like "9, 10, 11, 12" (3+ consecutive numbers)
     text = re.sub(r'(\b\d+\b,\s*){2,}\b\d+\b', '', text)
-    # Replace standalone ? placeholder (e.g. "the ? circle") — space on both sides only
     text = re.sub(r'(?<=\s)\?(?=\s)', 'question mark', text)
-    # Collapse excess whitespace
     return re.sub(r'\s{2,}', ' ', text).strip()
 
 
@@ -59,33 +71,65 @@ def _normalize(text: str) -> str:
     """Normalize Unicode punctuation that confuses the say command."""
     return (
         text
-        .replace('—', ', ')   # em dash  —  → comma pause
-        .replace('–', ', ')   # en dash  –  → comma pause
-        .replace('’', "'")    # right single quote '
-        .replace('‘', "'")    # left single quote  '
-        .replace('“', '"')    # left double quote  "
-        .replace('”', '"')    # right double quote "
-        .replace('…', '...')  # ellipsis …
+        .replace('—', ', ')
+        .replace('–', ', ')
+        .replace('‘', "'")
+        .replace('’', "'")
+        .replace('“', '"')
+        .replace('”', '"')
+        .replace('…', '...')
     )
 
 
-def speak(text: str) -> None:
-    global _proc
+def speak(text: str, device: int | None = None) -> None:
+    global _proc, _sd_playing
     clean = _normalize(_strip_emojis(_clean_for_speech(text)))
     if not clean:
         return
-    with _proc_lock:
-        if _proc and _proc.poll() is None:
-            _proc.kill()
-            _proc.wait()
-        # Feed text via stdin so no CLI arg escaping issues
-        _proc = subprocess.Popen(
-            ["say", "-r", "150", "-f", "-"],
-            stdin=subprocess.PIPE
-        )
-        # [[slnc 500]] keeps the process alive 500 ms after the last word
-        # so the audio buffer fully flushes before say exits.
-        _proc.stdin.write((clean + " [[slnc 500]]").encode("utf-8"))
-        _proc.stdin.close()
-        proc_ref = _proc  # capture before lock release so stop_speaking() can't null it
-    proc_ref.wait()
+
+    if device is None:
+        # Default path: stream directly to system default output via say
+        with _proc_lock:
+            if _proc and _proc.poll() is None:
+                _proc.kill()
+                _proc.wait()
+            _proc = subprocess.Popen(
+                ["say", "-r", "150", "-f", "-"],
+                stdin=subprocess.PIPE
+            )
+            _proc.stdin.write((clean + " [[slnc 500]]").encode("utf-8"))
+            _proc.stdin.close()
+            proc_ref = _proc
+        proc_ref.wait()
+    else:
+        # Device-specific path: generate WAV with say, play via sounddevice
+        tmpfile = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                tmpfile = f.name
+
+            with _proc_lock:
+                if _proc and _proc.poll() is None:
+                    _proc.kill()
+                    _proc.wait()
+                _proc = subprocess.Popen(
+                    ["say", "-r", "150", "-o", tmpfile,
+                     "--data-format=LEI16@22050", "-f", "-"],
+                    stdin=subprocess.PIPE
+                )
+                _proc.stdin.write(clean.encode("utf-8"))
+                _proc.stdin.close()
+                proc_ref = _proc
+            proc_ref.wait()
+
+            if proc_ref.returncode == 0 and os.path.exists(tmpfile):
+                rate, data = scipy.io.wavfile.read(tmpfile)
+                audio = data.astype(np.float32) / 32768.0
+                _sd_playing = True
+                try:
+                    sd.play(audio, rate, device=device, blocking=True)
+                finally:
+                    _sd_playing = False
+        finally:
+            if tmpfile and os.path.exists(tmpfile):
+                os.unlink(tmpfile)

@@ -11,7 +11,7 @@ import threading
 import streamlit as st
 from core.tutor_brain import ask_lumi, reset_conversation
 from core.speech_input import record_audio, transcribe, list_input_devices
-from core.speech_output import speak, stop_speaking
+from core.speech_output import speak, stop_speaking, list_output_devices
 from core.visual_aids import detect_k2_problem, render_k2_visual
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -153,6 +153,8 @@ if "active_k2_problem" not in st.session_state:
     st.session_state.active_k2_problem = None  # (a, b, op) of current problem
 if "mic_device" not in st.session_state:
     st.session_state.mic_device = None  # None = auto-select
+if "speaker_device" not in st.session_state:
+    st.session_state.speaker_device = None  # None = system default
 
 # recording is set and cleared within a single script run — reset each run so
 # a crash or queued double-click can never leave the button permanently disabled.
@@ -205,9 +207,9 @@ def add_message(role: str, text: str, tools: list = None,
         "count_n": count_n,
     })
 
-def speak_async(text: str):
+def speak_async(text: str, device: int | None = None):
     """Speak without blocking the UI."""
-    thread = threading.Thread(target=speak, args=(text,), daemon=True)
+    thread = threading.Thread(target=speak, args=(text, device), daemon=True)
     thread.start()
 
 def start_session(grade_group: str):
@@ -225,7 +227,7 @@ def start_session(grade_group: str):
         intro = "Hi! I am Lumi, your math buddy! What math shall we do today?"
     add_message("lumi", intro)
     if st.session_state.voice_enabled:
-        speak_async(intro)
+        speak_async(intro, st.session_state.speaker_device)
 
 _RECORDING_COOLDOWN = 2.0  # seconds to ignore a queued double-click after recording ends
 
@@ -274,7 +276,7 @@ def handle_voice_input():
         show_vis = _should_show_visual(child_text, tools) if st.session_state.grade_group == "K2" else False
         add_message("lumi", reply, tools, show_visual=show_vis, count_n=count_n)
         if st.session_state.voice_enabled:
-            speak_async(reply)
+            speak_async(reply, st.session_state.speaker_device)
         msg.empty()
         st.session_state.status = "Ready!"
 
@@ -325,6 +327,14 @@ with st.sidebar:
     _current = _dev_indices.index(st.session_state.mic_device) if st.session_state.mic_device in _dev_indices else 0
     _selected = st.selectbox("🎙️ Microphone", _dev_labels, index=_current)
     st.session_state.mic_device = _dev_indices[_dev_labels.index(_selected)]
+
+    # Speaker device selector
+    _out_devs = list_output_devices()
+    _spk_labels = ["🔄 System default"] + [f"🔊 {d['name']}" for d in _out_devs]
+    _spk_indices = [None] + [d["index"] for d in _out_devs]
+    _spk_cur = _spk_indices.index(st.session_state.speaker_device) if st.session_state.speaker_device in _spk_indices else 0
+    _spk_sel = st.selectbox("🔊 Speaker", _spk_labels, index=_spk_cur)
+    st.session_state.speaker_device = _spk_indices[_spk_labels.index(_spk_sel)]
 
     if st.session_state.grade_group == "35":
         st.session_state.voice_enabled = st.toggle(
