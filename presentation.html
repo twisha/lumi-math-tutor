@@ -222,6 +222,33 @@
     padding-left: 0.5rem;
   }
 
+  /* ── 4-column cards ── */
+  .cards.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .cards.four .card { padding: 1rem 1.1rem; }
+  .cards.four .card p { font-size: 0.82rem; }
+  .cards.four .card h3 { font-size: 0.92rem; }
+  .cards.four .card .icon { font-size: 1.3rem; margin-bottom: 0.4rem; }
+
+  /* ── Architecture diagram ── */
+  .arch { width: 100%; max-width: 840px; margin-top: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .arch-row { display: flex; align-items: stretch; border-radius: 10px; overflow: hidden; min-height: 52px; }
+  .arch-lbl { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.2); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.12em; display: flex; align-items: center; justify-content: flex-end; padding: 0 0.75rem 0 0.9rem; min-width: 58px; border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+  .arch-body { display: flex; align-items: center; gap: 0.55rem; padding: 0.5rem 1rem; flex: 1; }
+  .arch-row.io    { background: rgba(80,200,120,0.06);  border: 1px solid rgba(80,200,120,0.18); }
+  .arch-row.ui    { background: rgba(255,140,0,0.05);   border: 1px solid rgba(255,140,0,0.16); }
+  .arch-row.brain { background: rgba(100,180,255,0.05); border: 1px solid rgba(100,180,255,0.18); }
+  .arch-row.mcp   { background: rgba(255,140,0,0.05);   border: 1px solid rgba(255,140,0,0.16); }
+  .arch-row.tools { background: rgba(255,217,102,0.04); border: 1px solid rgba(255,217,102,0.14); }
+  .arch-chip { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.28rem 0.7rem; font-size: 0.78rem; color: #e8e8e8; line-height: 1.35; text-align: center; }
+  .arch-chip .sub { display: block; font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 0.08rem; }
+  .arch-chip.green  { border-color: rgba(80,200,120,0.45);  color: #90e0a0; }
+  .arch-chip.blue   { border-color: rgba(100,180,255,0.45); color: #90c8ff; }
+  .arch-chip.purple { border-color: rgba(160,100,255,0.45); color: #c0a0ff; }
+  .arch-chip.amber  { border-color: rgba(255,180,0,0.4);    color: #FFD966; }
+  .arch-fill { flex: 1; }
+  .arch-op { color: rgba(255,255,255,0.2); font-size: 0.82rem; flex-shrink: 0; }
+  .arch-gap { display: flex; justify-content: center; padding-left: 58px; color: rgba(255,255,255,0.13); font-size: 0.8rem; line-height: 1; margin: 0.08rem 0; }
+
   /* ── Slide-specific ── */
   #s1 { background: radial-gradient(ellipse at 60% 40%, #1a1130 0%, #0f0f1a 70%); }
   #s6 { background: radial-gradient(ellipse at 50% 50%, #1a1008 0%, #0f0f1a 70%); }
@@ -285,68 +312,107 @@
   <div class="slide" id="s3">
     <div class="eyebrow">System Architecture</div>
     <h2>How It Works</h2>
-    <div class="flow">
-      <div class="flow-box"><div class="label">Child</div><div class="name">👦 Voice / Text</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Speech Input</div><div class="name">Whisper + VAD</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Brain</div><div class="name">tutor_brain.py</div></div>
-      <div class="arrow">⇄</div>
-      <div class="flow-box"><div class="label">LLM</div><div class="name">Claude Haiku</div></div>
+    <div class="arch">
+
+      <div class="arch-row io">
+        <div class="arch-lbl">I / O</div>
+        <div class="arch-body">
+          <div class="arch-chip green">🎤 Mic + Whisper<span class="sub">speech_input.py · local · VAD silence detection</span></div>
+          <div class="arch-fill"></div>
+          <div class="arch-chip green">🔊 macOS say TTS<span class="sub">speech_output.py · local · Unicode + flush buffer</span></div>
+        </div>
+      </div>
+
+      <div class="arch-gap">↕</div>
+
+      <div class="arch-row ui">
+        <div class="arch-lbl">UI</div>
+        <div class="arch-body">
+          <div class="arch-chip amber arch-fill">Streamlit · app.py · visual_aids.py<span class="sub">grade picker · session state · K-2 hop-path visual aid</span></div>
+        </div>
+      </div>
+
+      <div class="arch-gap">↕</div>
+
+      <div class="arch-row brain">
+        <div class="arch-lbl">Brain</div>
+        <div class="arch-body">
+          <div class="arch-chip">tutor_brain.py<span class="sub">agentic loop · LLM self-tag</span></div>
+          <div class="arch-op">↔ cached prompt ↔</div>
+          <div class="arch-chip blue">Claude Haiku<span class="sub">Anthropic API</span></div>
+          <div class="arch-op">→</div>
+          <div class="arch-chip purple">LangSmith<span class="sub">traces every call</span></div>
+        </div>
+      </div>
+
+      <div class="arch-gap">↕</div>
+
+      <div class="arch-row mcp">
+        <div class="arch-lbl">MCP</div>
+        <div class="arch-body">
+          <div class="arch-chip">mcp_bridge.py<span class="sub">MCP client · Anthropic format</span></div>
+          <div class="arch-op">↔ stdio ↔</div>
+          <div class="arch-chip">mcp_server.py<span class="sub">MCP server · model-agnostic</span></div>
+        </div>
+      </div>
+
+      <div class="arch-gap">↕</div>
+
+      <div class="arch-row tools">
+        <div class="arch-lbl">Tools</div>
+        <div class="arch-body">
+          <div class="arch-chip amber arch-fill">calculate · check_answer · generate_problem · check_topic · check_grade_level<span class="sub">tools.py · all grade-aware · no hallucinated math</span></div>
+        </div>
+      </div>
+
     </div>
-    <div class="flow" style="margin-top:0.8rem;">
-      <div class="flow-box"><div class="label">MCP Client</div><div class="name">mcp_bridge.py</div></div>
-      <div class="arrow">⇄ stdio ⇄</div>
-      <div class="flow-box"><div class="label">MCP Server</div><div class="name">mcp_server.py</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Tools</div><div class="name">calculate · check · generate</div></div>
-    </div>
-    <div class="flow" style="margin-top:0.8rem;">
-      <div class="flow-box"><div class="label">Reply + Tag</div><div class="name">tutor_brain.py</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Visual Aid</div><div class="name">visual_aids.py</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Speech Out</div><div class="name">macOS say TTS</div></div>
-      <div class="arrow">→</div>
-      <div class="flow-box"><div class="label">Child</div><div class="name">🔊 Hears Lumi</div></div>
-    </div>
-    <p style="margin-top:1.2rem; font-size:0.8rem; color:rgba(255,255,255,0.3);">LangSmith traces every ask_lumi() call for observability</p>
+    <p style="margin-top:0.7rem; font-size:0.7rem; color:rgba(255,255,255,0.2);">🟢 local &nbsp;·&nbsp; 🔵 cloud API &nbsp;·&nbsp; 🟣 observability</p>
   </div>
 
   <!-- ── Slide 4: AI Concepts ── -->
   <div class="slide" id="s4">
     <div class="eyebrow">AI Engineering Fundamentals</div>
-    <h2>Concepts Applied</h2>
-    <div class="cards three">
+    <h2>8 Course Concepts Applied</h2>
+    <div class="cards four" style="max-width:980px;">
       <div class="card">
         <div class="icon">✏️</div>
         <h3>Prompt Engineering</h3>
-        <p>Separate system prompts for K–2 and Grade 3–5 encode persona, teaching strategy, hint escalation, and guardrails entirely in natural language. Zero fine-tuning.</p>
+        <p>Two grade-level personas in natural language — K–2 and 3–5. Teaching strategy, hint escalation, and guardrails. Zero fine-tuning.</p>
       </div>
       <div class="card">
         <div class="icon">🔧</div>
         <h3>Agentic Tool Use</h3>
-        <p>Claude autonomously decides when to call <code>calculate()</code>, <code>check_answer()</code>, <code>generate_problem()</code>, <code>check_topic()</code>, or <code>check_grade_level()</code>.</p>
+        <p>Claude autonomously reasons when to call <code>calculate()</code>, <code>check_answer()</code>, <code>generate_problem()</code>, <code>check_topic()</code>, or <code>check_grade_level()</code>.</p>
       </div>
       <div class="card">
         <div class="icon">🔌</div>
         <h3>MCP Protocol</h3>
-        <p>Tools run as a local MCP server over stdio. The bridge translates MCP schemas to Anthropic tool format — model-agnostic and fully swappable.</p>
+        <p>Tools run as a real MCP server over stdio — the same protocol Claude Code uses. Model-agnostic: swap the LLM, keep the tools.</p>
       </div>
       <div class="card">
         <div class="icon">🏷️</div>
         <h3>LLM Self-Tagging</h3>
-        <p>Lumi appends <code>[COUNT:N]</code> when asking the child to count aloud. The app strips the tag, computes recording duration as N+3 seconds, and adapts — no regex, no rules.</p>
+        <p>Lumi embeds <code>[COUNT:N]</code> in its own reply. App strips the tag, sets recording window to N+3 s. The model classifies its own intent — no regex.</p>
       </div>
       <div class="card">
         <div class="icon">⚡</div>
         <h3>Prompt Caching</h3>
-        <p>The system prompt is marked ephemeral with Anthropic's cache_control API, reducing latency and token cost on every multi-turn conversation turn.</p>
+        <p>System prompt marked <code>cache_control: ephemeral</code> on every API call — cuts latency and token cost on every multi-turn turn.</p>
       </div>
       <div class="card">
         <div class="icon">🎙️</div>
         <h3>Multimodal I/O</h3>
-        <p>Whisper (transformer STT) with silence-detection early-stop for voice input. macOS <code>say</code> subprocess with Unicode normalization and VAD-aware duration for TTS output.</p>
+        <p>Whisper transformer STT with VAD silence-detection early-stop. macOS <code>say</code> TTS with Unicode normalization and 500 ms audio flush buffer.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛡️</div>
+        <h3>Guardrails</h3>
+        <p>Every response topic- and grade-classified before answering. Tool-verified math — Lumi never guesses. Out-of-scope gets a warm redirect, not an error.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📊</div>
+        <h3>Observability</h3>
+        <p>LangSmith wraps every <code>ask_lumi()</code> call — full trace of tool calls, token count, latency, and conversation context.</p>
       </div>
     </div>
   </div>
@@ -401,11 +467,11 @@
   <div class="slide" id="s7">
     <div class="eyebrow">Capstone Project · AI Engineering Course</div>
     <h1>✨ Lumi</h1>
-    <p style="margin-top:1.2rem; font-size:1.1rem;">A voice math tutor for young kids that applies six AI engineering fundamentals<br>in a single working product — built end to end.</p>
+    <p style="margin-top:1.2rem; font-size:1.1rem;">A voice math tutor for young kids that applies eight AI engineering fundamentals<br>in a single working product — built end to end.</p>
     <div class="cards two" style="margin-top:2rem; max-width:700px;">
       <div class="card">
-        <h3>What We Applied</h3>
-        <p style="line-height:2.1;">Prompt Engineering · Agentic Tool Use<br>MCP Protocol · Guardrails<br>LLM Self-Tagging · Prompt Caching<br>Multimodal I/O · Observability</p>
+        <h3>8 Fundamentals Applied</h3>
+        <p style="line-height:2.1;">Prompt Engineering · Agentic Tool Use<br>MCP Protocol · LLM Self-Tagging<br>Prompt Caching · Multimodal I/O<br>Guardrails · Observability</p>
       </div>
       <div class="card">
         <h3>Stack</h3>
