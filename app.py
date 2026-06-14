@@ -10,7 +10,7 @@ import time
 import threading
 import streamlit as st
 from core.tutor_brain import ask_lumi, reset_conversation
-from core.speech_input import record_audio, transcribe
+from core.speech_input import record_audio, transcribe, list_input_devices
 from core.speech_output import speak, stop_speaking
 from core.visual_aids import detect_k2_problem, render_k2_visual
 
@@ -151,6 +151,8 @@ if "last_recording_end" not in st.session_state:
     st.session_state.last_recording_end = 0.0
 if "active_k2_problem" not in st.session_state:
     st.session_state.active_k2_problem = None  # (a, b, op) of current problem
+if "mic_device" not in st.session_state:
+    st.session_state.mic_device = None  # None = auto-select
 
 # recording is set and cleared within a single script run — reset each run so
 # a crash or queued double-click can never leave the button permanently disabled.
@@ -248,7 +250,7 @@ def handle_voice_input():
     try:
         rec_secs = _recording_duration()
         msg.info(f"🎤 Listening... speak now! ({rec_secs} seconds)")
-        audio = record_audio(duration=rec_secs)
+        audio = record_audio(duration=rec_secs, device=st.session_state.mic_device)
 
         # Mic health check — warn if device returns pure silence
         import numpy as _np
@@ -315,6 +317,14 @@ with st.sidebar:
         "Show tool calls (debug)",
         value=st.session_state.show_tools
     )
+
+    # Mic device selector
+    _input_devs = list_input_devices()
+    _dev_labels = ["🔄 Auto"] + [f"🎤 {d['name']}" for d in _input_devs]
+    _dev_indices = [None] + [d["index"] for d in _input_devs]
+    _current = _dev_indices.index(st.session_state.mic_device) if st.session_state.mic_device in _dev_indices else 0
+    _selected = st.selectbox("🎙️ Microphone", _dev_labels, index=_current)
+    st.session_state.mic_device = _dev_indices[_dev_labels.index(_selected)]
 
     if st.session_state.grade_group == "35":
         st.session_state.voice_enabled = st.toggle(

@@ -46,7 +46,17 @@ def _find_input_device() -> int | None:
     return None
 
 
-def record_audio(duration: int = 5, sample_rate: int = 16000) -> np.ndarray:
+def list_input_devices() -> list[dict]:
+    """Return all available input devices as list of {index, name}."""
+    return [
+        {"index": i, "name": dev["name"]}
+        for i, dev in enumerate(sd.query_devices())
+        if dev["max_input_channels"] > 0
+    ]
+
+
+def record_audio(duration: int = 5, sample_rate: int = 16000,
+                 device: int | None = None) -> np.ndarray:
     """Record until silence-after-speech or max duration, whichever comes first.
 
     Strategy:
@@ -84,7 +94,7 @@ def record_audio(duration: int = 5, sample_rate: int = 16000) -> np.ndarray:
         return np.concatenate(frames).flatten() if frames else np.zeros(
             int(sample_rate * duration), dtype="float32")
 
-    primary = _find_input_device()
+    primary = device if device is not None else _find_input_device()
     try:
         return _record_on_device(primary)
     except sd.PortAudioError:
