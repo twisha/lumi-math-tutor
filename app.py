@@ -250,11 +250,18 @@ def handle_voice_input():
         msg.info(f"🎤 Listening... speak now! ({rec_secs} seconds)")
         audio = record_audio(duration=rec_secs)
 
+        # Mic health check — warn if device returns pure silence
+        import numpy as _np
+        rms = float(_np.sqrt(_np.mean(audio ** 2)))
+        if rms < 1e-6:
+            st.session_state.status = "⚠️ Mic returned silence — check mic permissions in System Settings → Privacy & Security → Microphone"
+            return
+
         msg.info("💭 Transcribing your voice...")
         child_text = transcribe(audio)
 
         if not child_text:
-            msg.warning("I didn't catch that — please try again!")
+            st.session_state.status = "🎤 Didn't catch that — please try again!"
             return
 
         msg.success(f'You said: *"{child_text}"*')
@@ -270,8 +277,7 @@ def handle_voice_input():
         st.session_state.status = "Ready!"
 
     except Exception as e:
-        msg.error(f"Something went wrong — please try again. ({type(e).__name__})")
-        st.session_state.status = "Error — please try again."
+        st.session_state.status = f"⚠️ Error: {type(e).__name__} — {e}"
 
     finally:
         st.session_state.recording = False

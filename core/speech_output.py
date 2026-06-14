@@ -87,4 +87,5 @@ def speak(text: str) -> None:
         # so the audio buffer fully flushes before say exits.
         _proc.stdin.write((clean + " [[slnc 500]]").encode("utf-8"))
         _proc.stdin.close()
-    _proc.wait()
+        proc_ref = _proc  # capture before lock release so stop_speaking() can't null it
+    proc_ref.wait()
