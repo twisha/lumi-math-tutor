@@ -28,7 +28,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 4rem 6rem;
+    padding: 1.8rem 3.5rem 3.5rem;
     opacity: 0;
     transform: translateY(30px);
     transition: opacity 0.4s ease, transform 0.4s ease;
@@ -76,11 +76,11 @@
 
   /* ── Typography ── */
   .eyebrow {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: #FF8C00;
-    margin-bottom: 1rem;
+    margin-bottom: 0.6rem;
   }
 
   h1 {
@@ -96,18 +96,18 @@
     font-size: 2.2rem;
     font-weight: 700;
     color: #FF8C00;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
   }
 
   .subtitle {
     font-size: 1.2rem;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.6);
     margin-top: 0.8rem;
   }
 
   p {
     font-size: 1.05rem;
-    color: rgba(255,255,255,0.75);
+    color: rgba(255,255,255,0.82);
     line-height: 1.7;
     max-width: 720px;
   }
@@ -115,10 +115,10 @@
   /* ── Cards grid ── */
   .cards {
     display: grid;
-    gap: 1.2rem;
+    gap: 1rem;
     width: 100%;
-    max-width: 900px;
-    margin-top: 1rem;
+    max-width: 920px;
+    margin-top: 0.6rem;
   }
 
   .cards.two   { grid-template-columns: 1fr 1fr; }
@@ -126,15 +126,15 @@
 
   .card {
     background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: 16px;
-    padding: 1.4rem 1.6rem;
+    padding: 1.3rem 1.5rem;
     text-align: left;
   }
 
-  .card .icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
-  .card h3 { font-size: 1rem; font-weight: 700; color: #FFD966; margin-bottom: 0.4rem; }
-  .card p  { font-size: 0.88rem; color: rgba(255,255,255,0.6); }
+  .card .icon { font-size: 1.7rem; margin-bottom: 0.5rem; }
+  .card h3 { font-size: 1.05rem; font-weight: 700; color: #FFD966; margin-bottom: 0.4rem; }
+  .card p  { font-size: 0.92rem; color: rgba(255,255,255,0.78); }
 
   /* ── Architecture flow ── */
   .flow {
@@ -174,9 +174,9 @@
     background: rgba(255,140,0,0.15);
     border: 1px solid rgba(255,140,0,0.3);
     color: #FFD966;
-    padding: 0.35rem 0.9rem;
+    padding: 0.4rem 1.1rem;
     border-radius: 50px;
-    font-size: 0.82rem;
+    font-size: 0.95rem;
   }
 
   /* ── Chat demo ── */
@@ -190,11 +190,11 @@
   }
 
   .bubble {
-    padding: 0.8rem 1.2rem;
+    padding: 0.9rem 1.3rem;
     border-radius: 16px;
-    font-size: 0.92rem;
-    line-height: 1.5;
-    max-width: 85%;
+    font-size: 1rem;
+    line-height: 1.55;
+    max-width: 88%;
   }
 
   .bubble.lumi {
@@ -215,39 +215,39 @@
   }
 
   .tool-trace {
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.3);
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.45);
     font-family: monospace;
     align-self: flex-start;
     padding-left: 0.5rem;
   }
 
   /* ── 4-column cards ── */
-  .cards.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
-  .cards.four .card { padding: 1rem 1.1rem; }
-  .cards.four .card p { font-size: 0.82rem; }
-  .cards.four .card h3 { font-size: 0.92rem; }
-  .cards.four .card .icon { font-size: 1.3rem; margin-bottom: 0.4rem; }
+  .cards.four { grid-template-columns: 1fr 1fr 1fr 1fr; max-width: 100%; }
+  .cards.four .card { padding: 1.1rem 1.2rem; }
+  .cards.four .card p { font-size: 0.88rem; color: rgba(255,255,255,0.78); }
+  .cards.four .card h3 { font-size: 0.97rem; }
+  .cards.four .card .icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
 
   /* ── Architecture diagram ── */
-  .arch { width: 100%; max-width: 840px; margin-top: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
-  .arch-row { display: flex; align-items: stretch; border-radius: 10px; overflow: hidden; min-height: 52px; }
-  .arch-lbl { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.2); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.12em; display: flex; align-items: center; justify-content: flex-end; padding: 0 0.75rem 0 0.9rem; min-width: 58px; border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
-  .arch-body { display: flex; align-items: center; gap: 0.55rem; padding: 0.5rem 1rem; flex: 1; }
-  .arch-row.io    { background: rgba(80,200,120,0.06);  border: 1px solid rgba(80,200,120,0.18); }
-  .arch-row.ui    { background: rgba(255,140,0,0.05);   border: 1px solid rgba(255,140,0,0.16); }
-  .arch-row.brain { background: rgba(100,180,255,0.05); border: 1px solid rgba(100,180,255,0.18); }
-  .arch-row.mcp   { background: rgba(255,140,0,0.05);   border: 1px solid rgba(255,140,0,0.16); }
-  .arch-row.tools { background: rgba(255,217,102,0.04); border: 1px solid rgba(255,217,102,0.14); }
-  .arch-chip { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.28rem 0.7rem; font-size: 0.78rem; color: #e8e8e8; line-height: 1.35; text-align: center; }
-  .arch-chip .sub { display: block; font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 0.08rem; }
-  .arch-chip.green  { border-color: rgba(80,200,120,0.45);  color: #90e0a0; }
-  .arch-chip.blue   { border-color: rgba(100,180,255,0.45); color: #90c8ff; }
-  .arch-chip.purple { border-color: rgba(160,100,255,0.45); color: #c0a0ff; }
-  .arch-chip.amber  { border-color: rgba(255,180,0,0.4);    color: #FFD966; }
+  .arch { width: 100%; max-width: 100%; margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .arch-row { display: flex; align-items: stretch; border-radius: 12px; overflow: hidden; min-height: 68px; }
+  .arch-lbl { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); font-size: 0.76rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; justify-content: flex-end; padding: 0 1rem 0 0.9rem; min-width: 74px; border-right: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+  .arch-body { display: flex; align-items: center; gap: 0.8rem; padding: 0.65rem 1.4rem; flex: 1; }
+  .arch-row.io    { background: rgba(80,200,120,0.07);  border: 1px solid rgba(80,200,120,0.28); }
+  .arch-row.ui    { background: rgba(255,140,0,0.06);   border: 1px solid rgba(255,140,0,0.25); }
+  .arch-row.brain { background: rgba(100,180,255,0.06); border: 1px solid rgba(100,180,255,0.28); }
+  .arch-row.mcp   { background: rgba(255,140,0,0.06);   border: 1px solid rgba(255,140,0,0.25); }
+  .arch-row.tools { background: rgba(255,217,102,0.05); border: 1px solid rgba(255,217,102,0.22); }
+  .arch-chip { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); border-radius: 8px; padding: 0.45rem 1.1rem; font-size: 0.95rem; font-weight: 500; color: #e8e8e8; line-height: 1.4; text-align: center; }
+  .arch-chip .sub { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.52); margin-top: 0.1rem; font-weight: 400; }
+  .arch-chip.green  { border-color: rgba(80,200,120,0.5);  color: #a0eeaa; }
+  .arch-chip.blue   { border-color: rgba(100,180,255,0.5); color: #a0d4ff; }
+  .arch-chip.purple { border-color: rgba(160,100,255,0.5); color: #ccb0ff; }
+  .arch-chip.amber  { border-color: rgba(255,180,0,0.5);   color: #FFD966; }
   .arch-fill { flex: 1; }
-  .arch-op { color: rgba(255,255,255,0.2); font-size: 0.82rem; flex-shrink: 0; }
-  .arch-gap { display: flex; justify-content: center; padding-left: 58px; color: rgba(255,255,255,0.13); font-size: 0.8rem; line-height: 1; margin: 0.08rem 0; }
+  .arch-op { color: rgba(255,255,255,0.45); font-size: 0.95rem; font-weight: 600; flex-shrink: 0; }
+  .arch-gap { display: flex; justify-content: center; padding-left: 74px; color: rgba(255,255,255,0.22); font-size: 1.1rem; line-height: 1; margin: 0.05rem 0; }
 
   /* ── Slide-specific ── */
   #s1 { background: radial-gradient(ellipse at 60% 40%, #1a1130 0%, #0f0f1a 70%); }
