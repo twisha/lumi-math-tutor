@@ -272,7 +272,7 @@
       <span class="tag">macOS TTS</span>
       <span class="tag">Streamlit</span>
       <span class="tag">LangSmith</span>
-      <span class="tag">Agentic AI</span>
+      <span class="tag">Agentic Tool Use</span>
       <span class="tag">Visual Aids</span>
     </div>
     <p style="margin-top:1.6rem; font-size:0.82rem; color:rgba(255,255,255,0.3);">
@@ -293,7 +293,7 @@
       <div class="card">
         <div class="icon">✨</div>
         <h3>The Solution</h3>
-        <p>Lumi listens via local Whisper, reasons with Claude via the Anthropic API, verifies answers through MCP tools, speaks back via local macOS TTS. A real agentic AI loop — end to end.</p>
+        <p>Lumi listens via local Whisper, reasons with Claude via the Anthropic API, verifies answers through MCP tools, speaks back via local macOS TTS. Claude autonomously decides which tools to call per turn — the app never scripts the sequence.</p>
       </div>
       <div class="card">
         <div class="icon">🎓</div>
@@ -382,7 +382,7 @@
       <div class="card">
         <div class="icon">🔧</div>
         <h3>Agentic Tool Use</h3>
-        <p>Claude autonomously reasons when to call <code>calculate()</code>, <code>check_answer()</code>, <code>generate_problem()</code>, <code>check_topic()</code>, or <code>check_grade_level()</code>.</p>
+        <p>Within each turn, Claude autonomously decides which tools to call and can chain them — <code>check_topic()</code> → <code>calculate()</code> → <code>check_answer()</code> — with no scripted logic in the app. Lumi is not a fully autonomous agent; the agentic behavior lives inside each turn.</p>
       </div>
       <div class="card">
         <div class="icon">🔌</div>
@@ -460,6 +460,7 @@
       <div class="bubble child">13! 👦</div>
       <div class="tool-trace">→ check_answer(expected=13, given=13) → correct: true ✓</div>
       <div class="bubble lumi">⭐ Lumi: YES! 4 + 9 = 13 — you are a math superstar! Want to try another one?</div>
+      <p style="font-size:0.78rem; color:rgba(255,255,255,0.3); margin-top:0.6rem; text-align:left;">Claude chained the tools — the app never scripted the sequence. Agentic tool use, not a fully autonomous agent.</p>
     </div>
   </div>
 
