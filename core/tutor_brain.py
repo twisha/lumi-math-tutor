@@ -26,6 +26,11 @@ conversation_history: list[dict] = []
 _GRADE_AWARE_TOOLS = {"generate_problem", "check_grade_level"}
 
 
+def _looks_like_answer(text: str) -> bool:
+    """Return True when the child typed a bare number (likely answering a problem)."""
+    return bool(re.match(r'^\s*\d+\s*$', text.strip()))
+
+
 def _clean(text: str) -> tuple[str, int]:
     """Strip LaTeX escapes and extract the [COUNT:N] tag if present.
     Returns (cleaned_text, count_n) where count_n=0 means no counting task."""
@@ -43,6 +48,8 @@ def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict], 
     tool_calls_log = []
     system_prompt = get_system_prompt(grade_group)
 
+    tool_choice = {"type": "any"} if _looks_like_answer(user_text) else {"type": "auto"}
+
     while True:
         try:
             response = client.messages.create(
@@ -54,6 +61,7 @@ def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict], 
                     "cache_control": {"type": "ephemeral"}
                 }],
                 tools=TOOLS_ANTHROPIC,
+                tool_choice=tool_choice,
                 messages=conversation_history
             )
         except anthropic.AuthenticationError:
@@ -105,6 +113,7 @@ def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict], 
 
             conversation_history.append({"role": "assistant", "content": assistant_content})
             conversation_history.append({"role": "user", "content": tool_results})
+            tool_choice = {"type": "auto"}  # allow text-only response after tool results
 
         else:
             raw = "".join(block.text for block in response.content if hasattr(block, "text"))
