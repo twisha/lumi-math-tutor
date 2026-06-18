@@ -341,17 +341,9 @@
         <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"What do you think?"</div>
       </div>
 
-      <!-- Turn 2: social / off-topic -->
-      <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.55rem 0.75rem; align-items:center;">
-        <div style="font-size:0.7rem; font-weight:700; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:0.05em;">Turn 2</div>
-        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"Thank you."</div>
-        <div style="font-family:monospace; font-size:0.76rem; color:rgba(255,255,255,0.35); text-align:center;">— no tool —<br><span style="font-size:0.7rem;">end_turn directly</span></div>
-        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"Do you want to try that problem?"</div>
-      </div>
-
-      <!-- Turn 3: wrong answer -->
+      <!-- Turn 2: wrong answer -->
       <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; background:rgba(255,80,80,0.06); border:1px solid rgba(255,80,80,0.25); border-radius:10px; padding:0.55rem 0.75rem; align-items:center;">
-        <div style="font-size:0.7rem; font-weight:700; color:#ff9999; text-transform:uppercase; letter-spacing:0.05em;">Turn 3 ✗</div>
+        <div style="font-size:0.7rem; font-weight:700; color:#ff9999; text-transform:uppercase; letter-spacing:0.05em;">Turn 2 ✗</div>
         <div>
           <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"20"</div>
           <div style="font-family:monospace; font-size:0.7rem; color:rgba(255,255,255,0.35);">_looks_like_answer() → tool_choice="any"</div>
@@ -360,9 +352,9 @@
         <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">hint + visual shown</div>
       </div>
 
-      <!-- Turn 4: correct answer -->
+      <!-- Turn 3: correct answer -->
       <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; background:rgba(80,200,120,0.06); border:1px solid rgba(80,200,120,0.3); border-radius:10px; padding:0.55rem 0.75rem; align-items:center;">
-        <div style="font-size:0.7rem; font-weight:700; color:#a0eeaa; text-transform:uppercase; letter-spacing:0.05em;">Turn 4 ✓</div>
+        <div style="font-size:0.7rem; font-weight:700; color:#a0eeaa; text-transform:uppercase; letter-spacing:0.05em;">Turn 3 ✓</div>
         <div>
           <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"14"</div>
           <div style="font-family:monospace; font-size:0.7rem; color:rgba(255,255,255,0.35);">_looks_like_answer() → tool_choice="any"</div>
@@ -381,44 +373,16 @@
       </div>
       <div class="card" style="flex:1; padding:0.7rem 1rem;">
         <h3>🔒 tool_choice = "any"</h3>
-        <p style="font-size:0.82rem;">Only set when input is a bare number (Turns 3 &amp; 4). Forces <code>check_answer()</code> to run even on correct answers so the tool trace is always visible.</p>
+        <p style="font-size:0.82rem;">Only set when input is a bare number (Turns 2 &amp; 3). Forces <code>check_answer()</code> to run even on correct answers so the tool trace is always visible.</p>
       </div>
       <div class="card" style="flex:1; padding:0.7rem 1rem;">
         <h3>📜 Shared history</h3>
-        <p style="font-size:0.82rem;"><code>conversation_history</code> accumulates across all turns — Claude has full context. On Turn 4 it already knows the problem was 6+8 from Turn 1.</p>
+        <p style="font-size:0.82rem;"><code>conversation_history</code> accumulates across all turns — Claude has full context. On Turn 3 it already knows the problem was 6+8 from Turn 1.</p>
       </div>
     </div>
   </div>
 
-  <!-- ── Slide 4: Visual Aids ── -->
-  <div class="slide" id="s6b">
-    <div class="eyebrow">K–2 Feature Highlight</div>
-    <h2>Context-Aware Visual Aids</h2>
-    <div class="cards two" style="max-width:820px;">
-      <div class="card">
-        <div class="icon">🎨</div>
-        <h3>Hop-Path Number Line</h3>
-        <p>Replaces a tiny 0–20 ruler with large 56px circles connected by arrows. ★ START marks the larger operand; yellow circles show each hop; a dashed ? marks where the child must land — answer intentionally hidden.</p>
-      </div>
-      <div class="card">
-        <div class="icon">♿</div>
-        <h3>Color-Blind Accessible</h3>
-        <p>Color is never the only signal. Start circle is larger with a ★ icon and "START" label. Answer slot has a dashed border and "YOU!" label. Any child can follow the path without relying on color.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🧠</div>
-        <h3>Shown Only When Struggling</h3>
-        <p>Visual is hidden on first problem presentation. It appears only when the child asks for help or gives a wrong answer — detected via the child's words and <code>check_answer()</code> tool result.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🔗</div>
-        <h3>Prompt ↔ Visual Alignment</h3>
-        <p>Lumi's spoken hint references the same shapes: "Look at the ★ START circle — hop along each circle and tell me what number you land on at the ? circle." Visual and voice teach the same strategy.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Slide 5: Architecture ── -->
+  <!-- ── Slide 4: Architecture ── -->
   <div class="slide" id="s3">
     <div class="eyebrow">System Architecture</div>
     <h2>How It Works</h2>
@@ -565,7 +529,7 @@
 <!-- ── Navigation ── -->
 <div class="nav">
   <button onclick="go(-1)">← Prev</button>
-  <span class="counter" id="counter">1 / 8</span>
+  <span class="counter" id="counter">1 / 7</span>
   <button onclick="go(1)">Next →</button>
 </div>
 
