@@ -251,8 +251,8 @@
 
   /* ── Slide-specific ── */
   #s1 { background: radial-gradient(ellipse at 60% 40%, #1a1130 0%, #0f0f1a 70%); }
-  #s6 { background: radial-gradient(ellipse at 50% 50%, #1a1008 0%, #0f0f1a 70%); }
-  #s7 { background: radial-gradient(ellipse at 40% 60%, #0a1a1a 0%, #0f0f1a 70%); }
+  #s7b { background: radial-gradient(ellipse at 50% 50%, #1a1008 0%, #0f0f1a 70%); }
+  #s8  { background: radial-gradient(ellipse at 40% 60%, #0a1a1a 0%, #0f0f1a 70%); }
 </style>
 </head>
 <body>
@@ -308,7 +308,117 @@
     </div>
   </div>
 
-  <!-- ── Slide 3: Architecture ── -->
+  <!-- ── Slide 3: Execution Flow ── -->
+  <div class="slide" id="s4">
+    <div class="eyebrow">Under the Hood</div>
+    <h2>Execution Flow · Full Session</h2>
+
+    <div style="width:100%; max-width:980px; margin-top:0.6rem; display:flex; flex-direction:column; gap:0.28rem;">
+
+      <!-- Column headers -->
+      <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; padding:0 0.4rem 0.1rem;">
+        <div></div>
+        <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.3); text-align:center;">Child Input</div>
+        <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.3); text-align:center;">Tool Call → Result</div>
+        <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.3); text-align:center;">Lumi Output</div>
+      </div>
+
+      <!-- Session Init -->
+      <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; background:rgba(80,200,120,0.06); border:1px solid rgba(80,200,120,0.25); border-radius:10px; padding:0.55rem 0.75rem; align-items:center;">
+        <div style="font-size:0.7rem; font-weight:700; color:#a0eeaa; text-transform:uppercase; letter-spacing:0.05em;">Init</div>
+        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">▶️ Start K–2 Session</div>
+        <div style="font-family:monospace; font-size:0.76rem; color:rgba(255,255,255,0.38); text-align:center;">reset_conversation()</div>
+        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"Hi! I am Lumi…"</div>
+      </div>
+
+      <div style="text-align:center; color:rgba(255,255,255,0.18); font-size:0.85rem;">↓  conversation_history grows each turn  ↓</div>
+
+      <!-- Turn 1: question -->
+      <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; background:rgba(100,180,255,0.06); border:1px solid rgba(100,180,255,0.25); border-radius:10px; padding:0.55rem 0.75rem; align-items:center;">
+        <div style="font-size:0.7rem; font-weight:700; color:#a0d4ff; text-transform:uppercase; letter-spacing:0.05em;">Turn 1</div>
+        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"What is 6 plus 8?"</div>
+        <div style="font-family:monospace; font-size:0.76rem; color:#FFD966;">calculate("6+8") → 14</div>
+        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"What do you think?"</div>
+      </div>
+
+      <!-- Turn 2: social / off-topic -->
+      <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:0.55rem 0.75rem; align-items:center;">
+        <div style="font-size:0.7rem; font-weight:700; color:rgba(255,255,255,0.45); text-transform:uppercase; letter-spacing:0.05em;">Turn 2</div>
+        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"Thank you."</div>
+        <div style="font-family:monospace; font-size:0.76rem; color:rgba(255,255,255,0.35); text-align:center;">— no tool —<br><span style="font-size:0.7rem;">end_turn directly</span></div>
+        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"Do you want to try that problem?"</div>
+      </div>
+
+      <!-- Turn 3: wrong answer -->
+      <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; background:rgba(255,80,80,0.06); border:1px solid rgba(255,80,80,0.25); border-radius:10px; padding:0.55rem 0.75rem; align-items:center;">
+        <div style="font-size:0.7rem; font-weight:700; color:#ff9999; text-transform:uppercase; letter-spacing:0.05em;">Turn 3 ✗</div>
+        <div>
+          <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"20"</div>
+          <div style="font-family:monospace; font-size:0.7rem; color:rgba(255,255,255,0.35);">_looks_like_answer() → tool_choice="any"</div>
+        </div>
+        <div style="font-family:monospace; font-size:0.76rem; color:#ff9999;">check_answer(ans=20)<br>→ correct: false</div>
+        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">hint + visual shown</div>
+      </div>
+
+      <!-- Turn 4: correct answer -->
+      <div style="display:grid; grid-template-columns:90px 1fr 1fr 1fr; gap:0.5rem; background:rgba(80,200,120,0.06); border:1px solid rgba(80,200,120,0.3); border-radius:10px; padding:0.55rem 0.75rem; align-items:center;">
+        <div style="font-size:0.7rem; font-weight:700; color:#a0eeaa; text-transform:uppercase; letter-spacing:0.05em;">Turn 4 ✓</div>
+        <div>
+          <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"14"</div>
+          <div style="font-family:monospace; font-size:0.7rem; color:rgba(255,255,255,0.35);">_looks_like_answer() → tool_choice="any"</div>
+        </div>
+        <div style="font-family:monospace; font-size:0.76rem; color:#a0eeaa;">check_answer(ans=14)<br>→ correct: true</div>
+        <div style="font-size:0.82rem; color:rgba(255,255,255,0.7);">"You got it — 6+8=14! 🌟"</div>
+      </div>
+
+    </div>
+
+    <!-- Bottom callouts -->
+    <div style="display:flex; gap:0.8rem; margin-top:0.7rem; max-width:980px; width:100%;">
+      <div class="card" style="flex:1; padding:0.7rem 1rem;">
+        <h3>🔁 While loop</h3>
+        <p style="font-size:0.82rem;">Each turn runs the same <code>ask_lumi()</code> loop. If Claude returns <code>tool_use</code>, the app executes via MCP and feeds the result back. Loop exits on <code>end_turn</code>.</p>
+      </div>
+      <div class="card" style="flex:1; padding:0.7rem 1rem;">
+        <h3>🔒 tool_choice = "any"</h3>
+        <p style="font-size:0.82rem;">Only set when input is a bare number (Turns 3 &amp; 4). Forces <code>check_answer()</code> to run even on correct answers so the tool trace is always visible.</p>
+      </div>
+      <div class="card" style="flex:1; padding:0.7rem 1rem;">
+        <h3>📜 Shared history</h3>
+        <p style="font-size:0.82rem;"><code>conversation_history</code> accumulates across all turns — Claude has full context. On Turn 4 it already knows the problem was 6+8 from Turn 1.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slide 4: Visual Aids ── -->
+  <div class="slide" id="s6b">
+    <div class="eyebrow">K–2 Feature Highlight</div>
+    <h2>Context-Aware Visual Aids</h2>
+    <div class="cards two" style="max-width:820px;">
+      <div class="card">
+        <div class="icon">🎨</div>
+        <h3>Hop-Path Number Line</h3>
+        <p>Replaces a tiny 0–20 ruler with large 56px circles connected by arrows. ★ START marks the larger operand; yellow circles show each hop; a dashed ? marks where the child must land — answer intentionally hidden.</p>
+      </div>
+      <div class="card">
+        <div class="icon">♿</div>
+        <h3>Color-Blind Accessible</h3>
+        <p>Color is never the only signal. Start circle is larger with a ★ icon and "START" label. Answer slot has a dashed border and "YOU!" label. Any child can follow the path without relying on color.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🧠</div>
+        <h3>Shown Only When Struggling</h3>
+        <p>Visual is hidden on first problem presentation. It appears only when the child asks for help or gives a wrong answer — detected via the child's words and <code>check_answer()</code> tool result.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔗</div>
+        <h3>Prompt ↔ Visual Alignment</h3>
+        <p>Lumi's spoken hint references the same shapes: "Look at the ★ START circle — hop along each circle and tell me what number you land on at the ? circle." Visual and voice teach the same strategy.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slide 5: Architecture ── -->
   <div class="slide" id="s3">
     <div class="eyebrow">System Architecture</div>
     <h2>How It Works</h2>
@@ -374,8 +484,8 @@
     <p style="margin-top:0.7rem; font-size:0.7rem; color:rgba(255,255,255,0.2);">🟢 local &nbsp;·&nbsp; 🔵 cloud API &nbsp;·&nbsp; 🟣 observability</p>
   </div>
 
-  <!-- ── Slide 4: AI Concepts ── -->
-  <div class="slide" id="s4">
+  <!-- ── Slide 6: AI Concepts ── -->
+  <div class="slide" id="s5">
     <div class="eyebrow">AI Engineering Fundamentals</div>
     <h2>8 Course Concepts Applied</h2>
     <div class="cards four" style="max-width:980px;">
@@ -429,55 +539,8 @@
     </div>
   </div>
 
-  <!-- ── Slide 5: Visual Aids ── -->
-  <div class="slide" id="s5">
-    <div class="eyebrow">K–2 Feature Highlight</div>
-    <h2>Context-Aware Visual Aids</h2>
-    <div class="cards two" style="max-width:820px;">
-      <div class="card">
-        <div class="icon">🎨</div>
-        <h3>Hop-Path Number Line</h3>
-        <p>Replaces a tiny 0–20 ruler with large 56px circles connected by arrows. ★ START marks the larger operand; yellow circles show each hop; a dashed ? marks where the child must land — answer intentionally hidden.</p>
-      </div>
-      <div class="card">
-        <div class="icon">♿</div>
-        <h3>Color-Blind Accessible</h3>
-        <p>Color is never the only signal. Start circle is larger with a ★ icon and "START" label. Answer slot has a dashed border and "YOU!" label. Any child can follow the path without relying on color.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🧠</div>
-        <h3>Shown Only When Struggling</h3>
-        <p>Visual is hidden on first problem presentation. It appears only when the child asks for help or gives a wrong answer — detected via the child's words and <code>check_answer()</code> tool result.</p>
-      </div>
-      <div class="card">
-        <div class="icon">🔗</div>
-        <h3>Prompt ↔ Visual Alignment</h3>
-        <p>Lumi's spoken hint references the same shapes: "Look at the ★ START circle — hop along each circle and tell me what number you land on at the ? circle." Visual and voice teach the same strategy.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Slide 6: Demo ── -->
-  <div class="slide" id="s6">
-    <div class="eyebrow">Live Demo</div>
-    <h2>Lumi in Action</h2>
-    <div class="chat">
-      <div class="bubble child">What is 4 plus 9? 👦</div>
-      <div class="tool-trace">→ calculate("4+9") = 13 &nbsp;|&nbsp; [COUNT:N] not emitted</div>
-      <div class="bubble lumi">😊 Lumi: Great question! What do you think 4 plus 9 equals?</div>
-      <div class="bubble child">Umm… 15? 👦</div>
-      <div class="tool-trace">→ check_answer(expected=13, given=15) → correct: false</div>
-      <div class="bubble lumi">😊 Lumi: Good try! Look at the ★ START circle — that is where we begin. Hop along each circle and tell me what number you land on at the ? circle.</div>
-      <div class="tool-trace">→ show_visual = true &nbsp;|&nbsp; hop-path rendered: ★9 → 10 → 11 → 12 → ?</div>
-      <div class="bubble child">13! 👦</div>
-      <div class="tool-trace">→ check_answer(expected=13, given=13) → correct: true ✓</div>
-      <div class="bubble lumi">⭐ Lumi: YES! 4 + 9 = 13 — you are a math superstar! Want to try another one?</div>
-      <p style="font-size:0.78rem; color:rgba(255,255,255,0.3); margin-top:0.6rem; text-align:left;">Claude chained the tools — the app never scripted the sequence. Agentic tool use, not a fully autonomous agent.</p>
-    </div>
-  </div>
-
   <!-- ── Slide 7: Close ── -->
-  <div class="slide" id="s7">
+  <div class="slide" id="s8">
     <div class="eyebrow">Capstone Project · AI Engineering Course</div>
     <h1>✨ Lumi</h1>
     <p style="margin-top:1.2rem; font-size:1.1rem;">A voice math tutor for young kids that applies eight AI engineering fundamentals<br>in a single working product — built end to end.</p>
@@ -502,7 +565,7 @@
 <!-- ── Navigation ── -->
 <div class="nav">
   <button onclick="go(-1)">← Prev</button>
-  <span class="counter" id="counter">1 / 7</span>
+  <span class="counter" id="counter">1 / 8</span>
   <button onclick="go(1)">Next →</button>
 </div>
 
@@ -526,3 +589,22 @@
 </script>
 </body>
 </html>
+  <!-- ── Slide 8: Demo ── -->
+  <div class="slide" id="s7b">
+    <div class="eyebrow">Live Demo</div>
+    <h2>Lumi in Action</h2>
+    <div class="chat">
+      <div class="bubble child">What is 4 plus 9? 👦</div>
+      <div class="tool-trace">→ calculate("4+9") = 13 &nbsp;|&nbsp; [COUNT:N] not emitted</div>
+      <div class="bubble lumi">😊 Lumi: Great question! What do you think 4 plus 9 equals?</div>
+      <div class="bubble child">Umm… 15? 👦</div>
+      <div class="tool-trace">→ check_answer(expected=13, given=15) → correct: false</div>
+      <div class="bubble lumi">😊 Lumi: Good try! Look at the ★ START circle — that is where we begin. Hop along each circle and tell me what number you land on at the ? circle.</div>
+      <div class="tool-trace">→ show_visual = true &nbsp;|&nbsp; hop-path rendered: ★9 → 10 → 11 → 12 → ?</div>
+      <div class="bubble child">13! 👦</div>
+      <div class="tool-trace">→ check_answer(expected=13, given=13) → correct: true ✓</div>
+      <div class="bubble lumi">⭐ Lumi: YES! 4 + 9 = 13 — you are a math superstar! Want to try another one?</div>
+      <p style="font-size:0.78rem; color:rgba(255,255,255,0.3); margin-top:0.6rem; text-align:left;">Claude chained the tools — the app never scripted the sequence. Agentic tool use, not a fully autonomous agent.</p>
+    </div>
+  </div>
+
