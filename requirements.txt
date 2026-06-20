@@ -7,3 +7,4 @@ numpy
 mcp
 anthropic
 langsmith
+pytest
