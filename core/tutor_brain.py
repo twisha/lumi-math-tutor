@@ -8,6 +8,7 @@ from langsmith.wrappers import wrap_anthropic
 
 from core.prompts import get_system_prompt
 from core.mcp_bridge import TOOLS_ANTHROPIC, execute_tool
+from core.storage import record_misconception
 
 MODEL = os.getenv("LUMI_MODEL", "claude-haiku-4-5-20251001")
 
@@ -23,7 +24,7 @@ client = wrap_anthropic(anthropic.Anthropic())
 conversation_history: list[dict] = []
 
 # Tools that need grade_group injected before execution
-_GRADE_AWARE_TOOLS = {"generate_problem", "check_grade_level"}
+_GRADE_AWARE_TOOLS = {"generate_problem", "check_grade_level", "classify_misconception"}
 
 
 def _looks_like_answer(text: str) -> bool:
@@ -42,8 +43,17 @@ def _clean(text: str) -> tuple[str, int]:
     return text, count_n
 
 
+def _persist_misconceptions(tool_calls_log: list[dict], student_id: str, grade_group: str) -> None:
+    """Save any classified misconceptions from this turn to the DB."""
+    for tc in tool_calls_log:
+        if tc.get("tool") == "classify_misconception":
+            misconception = tc.get("result", {}).get("misconception", "unknown_error")
+            if misconception != "unknown_error":
+                record_misconception(student_id, misconception, grade_group)
+
+
 @traceable(name="ask_lumi", run_type="chain")
-def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict], int]:
+def ask_lumi(user_text: str, grade_group: str = "K2", student_id: str = "") -> tuple[str, list[dict], int]:
     conversation_history.append({"role": "user", "content": user_text})
     tool_calls_log = []
     system_prompt = get_system_prompt(grade_group)
@@ -122,6 +132,8 @@ def ask_lumi(user_text: str, grade_group: str = "K2") -> tuple[str, list[dict], 
                 "role": "assistant",
                 "content": [{"type": "text", "text": reply}]
             })
+            if student_id:
+                _persist_misconceptions(tool_calls_log, student_id, grade_group)
             return reply, tool_calls_log, is_counting
 
 

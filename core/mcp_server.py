@@ -15,6 +15,7 @@ from core.tools import (
     generate_problem,
     check_topic,
     check_grade_level,
+    classify_misconception,
 )
 
 app = Server("lumi-math-tools")
@@ -85,17 +86,43 @@ async def list_tools() -> list[types.Tool]:
                 "required": ["topic"]
             }
         ),
+        types.Tool(
+            name="classify_misconception",
+            description=(
+                "Identify the specific named misconception that likely caused a wrong answer. "
+                "Returns a misconception key, human-readable name, description, and a Socratic "
+                "conflict question designed to surface the flaw in the student's mental model. "
+                "Call this immediately after check_answer() returns correct: false."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "expected":   {"type": "number", "description": "The correct answer."},
+                    "given":      {"type": "number", "description": "The student's wrong answer."},
+                    "operation":  {
+                        "type": "string",
+                        "enum": ["addition", "subtraction", "multiplication", "division"],
+                        "description": "The math operation in the current problem."
+                    },
+                    "operand_a":  {"type": "integer", "description": "First number in the problem."},
+                    "operand_b":  {"type": "integer", "description": "Second number in the problem."},
+                    "grade_group": {"type": "string", "enum": ["K2", "35"], "description": "Grade group."},
+                },
+                "required": ["expected", "given"]
+            }
+        ),
     ]
 
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     fn_map = {
-        "calculate":         calculate,
-        "check_answer":      check_answer,
-        "generate_problem":  generate_problem,
-        "check_topic":       check_topic,
-        "check_grade_level": check_grade_level,
+        "calculate":              calculate,
+        "check_answer":           check_answer,
+        "generate_problem":       generate_problem,
+        "check_topic":            check_topic,
+        "check_grade_level":      check_grade_level,
+        "classify_misconception": classify_misconception,
     }
     fn = fn_map.get(name)
     if fn is None:

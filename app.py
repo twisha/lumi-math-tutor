@@ -10,6 +10,7 @@ import time
 import threading
 import streamlit as st
 from core.tutor_brain import ask_lumi, reset_conversation
+from core.storage import get_student_report, get_all_students
 from core.speech_input import record_audio, transcribe, list_input_devices
 from core.speech_output import speak, stop_speaking, list_output_devices
 from core.visual_aids import detect_k2_problem, render_k2_visual
@@ -155,6 +156,10 @@ if "mic_device" not in st.session_state:
     st.session_state.mic_device = None  # None = auto-select
 if "speaker_device" not in st.session_state:
     st.session_state.speaker_device = None  # None = system default
+if "student_id" not in st.session_state:
+    st.session_state.student_id = ""
+if "student_name_input" not in st.session_state:
+    st.session_state.student_name_input = ""
 
 # recording is set and cleared within a single script run — reset each run so
 # a crash or queued double-click can never leave the button permanently disabled.
@@ -165,8 +170,13 @@ st.session_state.recording = False
 import re as _re
 
 def _extract_problem_from_tools(tools: list):
-    """Parse (a, b, op) from a calculate() tool call expression, e.g. '8+5' → (8,5,'+')."""
+    """Parse (a, b, op) from tool call results.
+
+    Checks calculate() expressions first, then falls back to generate_problem()
+    results (which never produce a calculate call of their own).
+    """
     for tc in tools:
+        # calculate("7+1") → expression in result
         if tc.get("tool") == "calculate":
             expr = tc.get("result", {}).get("expression", "")
             m = _re.match(r'(\d+)\s*([+\-])\s*(\d+)', expr)
@@ -174,6 +184,18 @@ def _extract_problem_from_tools(tools: list):
                 a, op, b = int(m.group(1)), m.group(2), int(m.group(3))
                 if 0 <= a <= 20 and 0 <= b <= 20:
                     return (a, b, op)
+        # generate_problem() → parse the two numbers out of the problem string
+        if tc.get("tool") == "generate_problem":
+            result = tc.get("result", {})
+            op_str = result.get("operation", "")
+            problem = result.get("problem", "")
+            op = '+' if op_str == "addition" else ('-' if op_str == "subtraction" else None)
+            if op:
+                nums = _re.findall(r'\d+', problem)
+                if len(nums) >= 2:
+                    a, b = int(nums[0]), int(nums[1])
+                    if 0 <= a <= 20 and 0 <= b <= 20:
+                        return (a, b, op)
     return None
 
 _HELP_PHRASES = ("help", "teach", "don't know", "not sure", "confused",
@@ -219,6 +241,7 @@ def start_session(grade_group: str):
     st.session_state.session_started = True
     st.session_state.grade_group = grade_group
     st.session_state.active_k2_problem = None
+    st.session_state.student_id = st.session_state.student_name_input.strip().lower() or "anonymous"
     # Voice defaults on for K-2, off for 3-5 (can be toggled in sidebar)
     st.session_state.voice_enabled = (grade_group == "K2")
     if grade_group == "35":
@@ -272,7 +295,11 @@ def handle_voice_input():
         add_message("child", child_text)
 
         msg.info("😊 Lumi is thinking...")
-        reply, tools, count_n = ask_lumi(child_text, st.session_state.grade_group or "K2")
+        reply, tools, count_n = ask_lumi(
+            child_text,
+            st.session_state.grade_group or "K2",
+            st.session_state.student_id,
+        )
         show_vis = _should_show_visual(child_text, tools) if st.session_state.grade_group == "K2" else False
         add_message("lumi", reply, tools, show_visual=show_vis, count_n=count_n)
         if st.session_state.voice_enabled:
@@ -293,7 +320,11 @@ def handle_text_input(text: str):
         return
     add_message("child", text)
     st.session_state.status = "Lumi is thinking..."
-    reply, tools, count_n = ask_lumi(text, st.session_state.grade_group or "K2")
+    reply, tools, count_n = ask_lumi(
+        text,
+        st.session_state.grade_group or "K2",
+        st.session_state.student_id,
+    )
     show_vis = _should_show_visual(text, tools) if st.session_state.grade_group == "K2" else False
     add_message("lumi", reply, tools, show_visual=show_vis, count_n=count_n)
     if st.session_state.voice_enabled:
@@ -376,6 +407,37 @@ with st.sidebar:
     """)
 
     st.markdown("---")
+
+    # ── Teacher View ──────────────────────────────────────────────────────────
+    with st.expander("👩‍🏫 Teacher View", expanded=False):
+        all_students = get_all_students()
+        if not all_students:
+            st.caption("No sessions recorded yet.")
+        else:
+            st.markdown("**All students**")
+            for row in all_students:
+                sid = row["student_id"]
+                label = sid.title() if sid != "anonymous" else "Anonymous"
+                is_current = sid == st.session_state.get("student_id", "")
+                badge = " ← current" if is_current else ""
+                st.markdown(
+                    f"**{label}**{badge} — "
+                    f"{row['distinct_misconceptions']} misconception type(s), "
+                    f"{row['total_errors']} total error(s)"
+                )
+
+        if st.session_state.get("student_id"):
+            sid = st.session_state.student_id
+            report = get_student_report(sid)
+            if report:
+                label = sid.title() if sid != "anonymous" else "Anonymous"
+                st.markdown(f"---\n**{label}'s misconceptions**")
+                for r in report:
+                    from core.tools import _TAXONOMY
+                    name = _TAXONOMY.get(r["misconception"], {}).get("name", r["misconception"])
+                    st.markdown(f"- **{name}** — seen {r['seen_count']}×")
+
+    st.markdown("---")
     if st.session_state.session_started:
         if st.button("🔄 New Session", use_container_width=True):
             st.session_state.session_started = False
@@ -388,11 +450,21 @@ with st.sidebar:
 
 if not st.session_state.session_started:
     st.markdown("""
-    <div style='text-align:center; padding: 1rem 0 1.5rem;'>
+    <div style='text-align:center; padding: 1rem 0 0.5rem;'>
         <p style='color:#aaa; font-size:1.1rem;'>Who are we tutoring today?</p>
     </div>
     """, unsafe_allow_html=True)
 
+    name_col, _ = st.columns([2, 1])
+    with name_col:
+        st.session_state.student_name_input = st.text_input(
+            "Student name (optional — used to track progress)",
+            value=st.session_state.student_name_input,
+            placeholder="e.g. Emma",
+            label_visibility="visible",
+        )
+
+    st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
 
     with col1:
