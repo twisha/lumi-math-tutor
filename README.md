@@ -1,6 +1,24 @@
-# ✨ Lumi — Math Buddy
+# Lumi — Agentic AI Math Tutor for K–5
 
-A voice-enabled AI math tutor for **Kindergarten through Grade 5** (ages 5–10). Lumi adapts to the selected grade group, guiding students through age-appropriate math with verified answers, warm guardrails, and full observability via LangSmith — powered by Claude AI with MCP-based tool use.
+> ✨ *"Math Buddy"* — a voice-and-text Socratic math tutor for Kindergarten–Grade 5.
+
+![Python](https://img.shields.io/badge/Python-3.9--3.13-blue)
+![LLM](https://img.shields.io/badge/LLM-Claude%20(Anthropic)-d97757)
+![Tools](https://img.shields.io/badge/Tools-MCP-black)
+![Observability](https://img.shields.io/badge/Observability-LangSmith-1c3c3c)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+**Lumi** is a voice-and-text AI math tutor for **Kindergarten through Grade 5** (ages 5–10), built on **Claude** with **Model Context Protocol (MCP)** tool-use. Math is verified by **deterministic tools** — the model can never present a wrong answer as correct — while the LLM handles adaptive, grade-aware **Socratic** dialogue. It ships with an **LLM-as-judge evaluation suite**, **LangSmith** observability, and a 10-dimension [reliability assessment](RELIABILITY_ASSESSMENT.md) covering multi-tenancy isolation, COPPA/PII handling, agentic-loop bounds, and cost/latency.
+
+**Stack:** Python · Claude (Anthropic API) · Model Context Protocol (MCP) · Streamlit · LangSmith · OpenAI Whisper
+
+## What This Demonstrates
+
+- **Guardrails for AI serving children** — correctness is hard-enforced in code, not left to the model
+- **Agentic tool-use** over MCP, with a bounded loop and a safe fallback
+- **Evaluation discipline** — deterministic checks plus an LLM-as-judge (no-spoiler, tool-compliance)
+- **Production reliability thinking** — a severity-ranked assessment across 10 dimensions
+- **Multi-tenant data isolation** — per-session state so concurrent students never share context
 
 ## Features
 
@@ -77,6 +95,16 @@ flowchart TD
     BRAIN -->|reply| APP
     APP -->|speak| TTS
 ```
+
+## Reliability & Evaluation
+
+Lumi is built to a production bar, not a demo bar:
+
+- **Deterministic correctness** — `calculate` / `check_answer` verify math via a restricted AST evaluator, so the model cannot present wrong math as correct.
+- **Bounded agentic loop** — the tool-use loop is capped (`_MAX_TOOL_ITERATIONS`) with a safe in-character fallback, preventing runaway cost/latency.
+- **Multi-tenant isolation** — conversation history is threaded through per-session state so concurrent students never share context.
+- **Evaluation suite** (`evals/`) — golden cases, deterministic evaluators, and an **LLM-as-judge** no-spoiler check, run against LangSmith.
+- **Full-system reliability assessment** — see **[RELIABILITY_ASSESSMENT.md](RELIABILITY_ASSESSMENT.md)**: ten dimensions (determinism, confidence, human-in-the-loop, auditability, failure modes, multi-tenancy, evaluation, cost/latency, security & COPPA, adaptation fit), each with code evidence and severity-ranked remediation.
 
 ## Prerequisites
 

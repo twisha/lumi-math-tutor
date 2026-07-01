@@ -1,0 +1,49 @@
+# Lumi — Agentic AI Math Tutor for K–5
+
+> Lumi is a voice-and-text AI math tutor for Kindergarten through Grade 5 (ages 5–10),
+> built on Claude (Anthropic) with Model Context Protocol (MCP) tool-use. Math is
+> verified by deterministic tools so the model can never present a wrong answer as
+> correct; the LLM handles adaptive, grade-aware Socratic dialogue. The project ships
+> with an LLM-as-judge evaluation suite, LangSmith observability, and a 10-dimension
+> reliability assessment. It is a portfolio project demonstrating production-grade AI
+> engineering for a child-facing product.
+
+## Author
+
+Twisha Desai — Staff Software Engineer. Focus: applied LLM engineering, agentic
+tool-use, evaluation, guardrails, and reliability for AI products.
+
+## What it demonstrates
+
+- Guardrails for AI serving children: correctness is hard-enforced in code (deterministic
+  answer-checking via a restricted AST evaluator), not left to the model.
+- Agentic tool-use over MCP with a bounded loop (`_MAX_TOOL_ITERATIONS`) and a safe fallback.
+- Evaluation discipline: deterministic evaluators plus an LLM-as-judge no-spoiler and
+  tool-compliance check, run against LangSmith.
+- Multi-tenant data isolation: per-session conversation state so concurrent students never
+  share context.
+- Production reliability thinking: a severity-ranked assessment across ten dimensions.
+
+## Tech stack
+
+Python; Claude via Anthropic API; Model Context Protocol (MCP); Streamlit; LangSmith
+observability; OpenAI Whisper (speech-to-text); pyttsx3 (text-to-speech); SQLite.
+
+## Key files
+
+- README.md — overview, architecture diagram, setup, and design decisions.
+- RELIABILITY_ASSESSMENT.md — 10-dimension reliability assessment with code evidence and
+  severity-ranked remediation.
+- core/tutor_brain.py — agentic loop (Claude API + LangSmith tracing + bounded tool-use).
+- core/tools.py — grade-aware tool implementations (calculate, check_answer, generate_problem,
+  check_topic, check_grade_level, classify_misconception).
+- core/mcp_server.py / core/mcp_bridge.py — MCP server and client bridge.
+- core/prompts.py — grade-specific Socratic system prompts.
+- app.py — Streamlit UI with grade picker and per-session state.
+- evals/ — golden cases, deterministic evaluators, LLM-as-judge, and LangSmith batch runner.
+
+## Notes
+
+Correctness is deterministic and hard-enforced. Grade/topic scoping is advisory (prompt- and
+tool-informed), a documented design choice with a code-level enforcement path noted in the
+reliability assessment.
