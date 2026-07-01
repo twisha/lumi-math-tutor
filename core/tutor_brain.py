@@ -26,6 +26,11 @@ conversation_history: list[dict] = []
 # Tools that need grade_group injected before execution
 _GRADE_AWARE_TOOLS = {"generate_problem", "check_grade_level", "classify_misconception"}
 
+# Cap on model↔tool round-trips per turn. A well-behaved turn uses 1–2
+# (e.g. calculate → check_answer → text). The ceiling stops a runaway loop
+# where the model keeps requesting tools indefinitely (unbounded cost/latency).
+_MAX_TOOL_ITERATIONS = 6
+
 
 def _looks_like_answer(text: str) -> bool:
     """Return True when the child typed a bare number (likely answering a problem)."""
@@ -53,14 +58,24 @@ def _persist_misconceptions(tool_calls_log: list[dict], student_id: str, grade_g
 
 
 @traceable(name="ask_lumi", run_type="chain")
-def ask_lumi(user_text: str, grade_group: str = "K2", student_id: str = "") -> tuple[str, list[dict], int]:
-    conversation_history.append({"role": "user", "content": user_text})
+def ask_lumi(
+    user_text: str,
+    grade_group: str = "K2",
+    student_id: str = "",
+    history: list[dict] | None = None,
+) -> tuple[str, list[dict], int]:
+    # Each browser session must own its own history. app.py passes a per-session
+    # list; the module-level global is only a fallback for single-threaded callers
+    # (evals, tests). Sharing one global across concurrent users leaks turns
+    # between children.
+    history = conversation_history if history is None else history
+    history.append({"role": "user", "content": user_text})
     tool_calls_log = []
     system_prompt = get_system_prompt(grade_group)
 
     tool_choice = {"type": "any"} if _looks_like_answer(user_text) else {"type": "auto"}
 
-    while True:
+    for _iteration in range(_MAX_TOOL_ITERATIONS):
         try:
             response = client.messages.create(
                 model=MODEL,
@@ -72,16 +87,16 @@ def ask_lumi(user_text: str, grade_group: str = "K2", student_id: str = "") -> t
                 }],
                 tools=TOOLS_ANTHROPIC,
                 tool_choice=tool_choice,
-                messages=conversation_history
+                messages=history
             )
         except anthropic.AuthenticationError:
-            conversation_history.pop()
+            history.pop()
             return "Oops! There is a problem with my connection. Please check the API key.", [], 0
         except anthropic.RateLimitError:
-            conversation_history.pop()
+            history.pop()
             return "I am a little tired right now! Please try again in a moment. 😊", [], 0
         except anthropic.APIError as e:
-            conversation_history.pop()
+            history.pop()
             return f"Something went wrong — please try again! ({type(e).__name__})", [], 0
 
         if response.stop_reason == "tool_use":
@@ -121,14 +136,14 @@ def ask_lumi(user_text: str, grade_group: str = "K2", student_id: str = "") -> t
                         "content": result
                     })
 
-            conversation_history.append({"role": "assistant", "content": assistant_content})
-            conversation_history.append({"role": "user", "content": tool_results})
+            history.append({"role": "assistant", "content": assistant_content})
+            history.append({"role": "user", "content": tool_results})
             tool_choice = {"type": "auto"}  # allow text-only response after tool results
 
         else:
             raw = "".join(block.text for block in response.content if hasattr(block, "text"))
             reply, is_counting = _clean(raw)
-            conversation_history.append({
+            history.append({
                 "role": "assistant",
                 "content": [{"type": "text", "text": reply}]
             })
@@ -136,9 +151,18 @@ def ask_lumi(user_text: str, grade_group: str = "K2", student_id: str = "") -> t
                 _persist_misconceptions(tool_calls_log, student_id, grade_group)
             return reply, tool_calls_log, is_counting
 
+    # Budget exhausted while the model was still requesting tools — bail out with
+    # a safe, in-character reply rather than looping forever. History already ends
+    # with a tool_result, so the next turn can continue normally.
+    if student_id:
+        _persist_misconceptions(tool_calls_log, student_id, grade_group)
+    fallback = "Let's try that one together! What do you think the answer is? 😊"
+    history.append({"role": "assistant", "content": [{"type": "text", "text": fallback}]})
+    return fallback, tool_calls_log, 0
 
-def reset_conversation():
-    conversation_history.clear()
+
+def reset_conversation(history: list[dict] | None = None):
+    (conversation_history if history is None else history).clear()
 
 
 def get_history():

@@ -138,6 +138,9 @@ st.markdown("""
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "conversation_history" not in st.session_state:
+    # Per-browser-session Claude history — keeps concurrent students isolated.
+    st.session_state.conversation_history = []
 if "status" not in st.session_state:
     st.session_state.status = "Ready!"
 if "show_tools" not in st.session_state:
@@ -236,7 +239,7 @@ def speak_async(text: str, device: int | None = None):
 
 def start_session(grade_group: str):
     """Initialize a fresh tutoring session for the selected grade group."""
-    reset_conversation()
+    reset_conversation(st.session_state.conversation_history)
     st.session_state.messages = []
     st.session_state.session_started = True
     st.session_state.grade_group = grade_group
@@ -299,6 +302,7 @@ def handle_voice_input():
             child_text,
             st.session_state.grade_group or "K2",
             st.session_state.student_id,
+            history=st.session_state.conversation_history,
         )
         show_vis = _should_show_visual(child_text, tools) if st.session_state.grade_group == "K2" else False
         add_message("lumi", reply, tools, show_visual=show_vis, count_n=count_n)
@@ -324,6 +328,7 @@ def handle_text_input(text: str):
         text,
         st.session_state.grade_group or "K2",
         st.session_state.student_id,
+        history=st.session_state.conversation_history,
     )
     show_vis = _should_show_visual(text, tools) if st.session_state.grade_group == "K2" else False
     add_message("lumi", reply, tools, show_visual=show_vis, count_n=count_n)
@@ -442,7 +447,7 @@ with st.sidebar:
         if st.button("🔄 New Session", use_container_width=True):
             st.session_state.session_started = False
             st.session_state.grade_group = None
-            reset_conversation()
+            reset_conversation(st.session_state.conversation_history)
             st.session_state.messages = []
             st.rerun()
 

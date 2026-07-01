@@ -4,3 +4,6 @@ __pycache__/
 .env
 demo_guide.md
 transcript.md
+
+# Local SQLite store — contains student names + per-student error history (PII)
+lumi_data.db
